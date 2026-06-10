@@ -1,0 +1,336 @@
+<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" style="overflow: hidden;"><head><title>
+	:: epermit Login - Govt. Of Telangana ::
+</title><link href="Content/CSS%20NEW/LoginCss/Login.css" rel="stylesheet" type="text/css">
+    <script src="Scripts/jquery-3.1.0.min.js?t=639164282547607097"></script>
+    <script src="Scripts/EpermitValidation.js?t=639164282547607097"></script>
+    <script src="Scripts/validations.js" type="text/javascript"></script>
+
+    <link href="Content/CSS%20NEW/bootstrap.min.css" rel="stylesheet"><link href="Content/CSS%20NEW/Custom.css" rel="stylesheet">
+
+    <style type="text/css">
+        @font-face {
+            font-family: 'Electrolize';
+            font-style: normal;
+            font-weight: 400;
+            src: local('Electrolize'), local('Electrolize-Regular'), url(http://themes.googleusercontent.com/static/fonts/electrolize/v2/DDy9sgU2U7S4xAwH5thnJ4bN6UDyHWBl620a-IRfuBk.woff) format('woff');
+        }
+
+        body {
+            background: #310404 url(Images/LOG-BG.jpg) repeat top left;
+            font-family: 'Electrolize';
+        }
+
+        .w-100 {
+            Width: 100% !important;
+        }
+
+        .fl {
+            float: left;
+        }
+    </style>
+    
+    <script type="text/javascript">
+        if (self === top) {
+            var antiClickjack = document.getElementById("antiClickjack");
+            antiClickjack.parentNode.removeChild(antiClickjack);
+        } else {
+            top.location = self.location;
+        }
+    </script>
+    
+    <script>
+        function preventBack() { window.history.forward(); }
+        setTimeout("preventBack()", 0);
+        window.onunload = function () { null };
+
+    </script>
+
+    <script type="text/javascript">
+
+        function changePwd() {
+
+
+
+            if (!isblank(document.getElementById("txtforgetNewPassword").value, 'New Password')) return false;
+            if (!isAtleastOnedigit(document.getElementById("txtforgetNewPassword").value, 'New Password')) return false;
+            if (!isPassword(document.getElementById("txtforgetNewPassword").value, 'New Password')) return false;
+
+            if (!isblank(document.getElementById("txtforgetConfirmPassword").value, 'Re-enter New Password')) return false;
+            if (!isAtleastOnedigit(document.getElementById("txtforgetConfirmPassword").value, 'Re-enter New Password')) return false;
+            if (!isPassword(document.getElementById("txtforgetConfirmPassword").value, 'Re-enter New Password')) return false;
+
+
+
+            if ((document.getElementById("txtforgetNewPassword").value.length < 8) && (document.getElementById("txtforgetConfirmPassword").value.length < 8)) {
+                alert("Password should have a minimum prescribed number of characters \n and values.!");
+                return false;
+            }
+            if (!isAtleastOnedigit(document.getElementById("txtforgetNewPassword").value)) return false;
+
+            if (document.getElementById("txtforgetNewPassword").value != document.getElementById("txtforgetConfirmPassword").value) {
+                alert('Passwords are not matching. Kindly Recheck!')
+                return (false);
+            }
+            
+        }
+    </script>
+     <style type="text/css">
+        .modalbox-container {
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.75);
+            overflow-y: auto;
+            display: inline-grid;
+            align-items: center;
+            z-index: 999999;
+        }
+
+            .modalbox-container .modal-box {
+                display: inline-block;
+                max-width: 1000px;
+                position: relative;
+                margin: 0 auto;
+            }
+
+                .modalbox-container .modal-box img {
+                    max-width: 50%;
+                    border: 2px solid #fff;
+                    border-radius: 5px 0 5px 5px;
+                    box-shadow: 0 0 30px 0 #000;
+                }
+
+            .modalbox-container .close-popup {
+                position: absolute;
+                top: 0;
+                right: 20%;
+                width: 40px;
+                height: 40px;
+                line-height: 40px;
+                background: #fff;
+                text-decoration: none;
+                font-size: 40px;
+                color: #000;
+                border-radius: 0 5px 5px 0;
+            }
+
+        .contrast .modalbox-container .close-popup {
+            background: #ff0;
+        }
+
+        @media (max-width: 800px) {
+            .modalbox-container .modal-box {
+                margin: 45px;
+            }
+
+                .modalbox-container .modal-box img {
+                    width: 100%;
+                }
+        }
+    </style>
+
+    <script type="text/javascript">
+        jQuery(document).ready(function ($) {
+
+
+            var $only_once = '';
+
+
+            if (!$only_once) {
+                $('.modalbox-container').removeClass('hide');
+                $('html,body').css('overflow', 'hidden');
+                $('.modalbox-banner').focus();
+            } else {
+                if ($s3waas_modal_cookie == null) {
+                    $('.modalbox-container').removeClass('hide');
+                    $('html,body').css('overflow', 'hidden');
+                    $('.modalbox-banner').focus();
+                }
+            }
+
+            $("#s3wassModalpopupClose").click(function () {
+                if ($only_once) {
+                    let nonce = $(this).attr('data-nonce');
+                    $.post(ajaxurl, { nonce: nonce, action: 's3waas_modal_cookie' }, function () { return true });
+                }
+                $(".modalbox-container").hide();
+                $('.skip-to-content').focus();
+                $('html,body').css('overflow', '');
+            });
+            $(document).keyup(function (e) {
+                if (e.key === "Escape") { // escape key maps to keycode `27`
+                    if ($(".modalbox-container").length > 0) {
+                        $("#s3wassModalpopupClose").trigger('click');
+                    }
+                }
+            });
+        })
+    </script>
+</head>
+<body style="overflow: hidden;">
+    
+    <form method="post" action="./login.aspx" id="form1">
+<div class="aspNetHidden">
+<input type="hidden" name="__LASTFOCUS" id="__LASTFOCUS" value="" style="">
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" style="">
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" style="">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="tRLgHIcO3O0AfK5r53bkFZ2OCQ8WPmUwy0CXV+3yRXbDl1wojTR/cNP/N0LgnAsWl/6EV+DIq5XZegEI3pAGbXn+Mv+RUDcw0zSNUqbuiJlhp6yDX9R58vumGXQjck+0" style="">
+</div>
+
+<script type="text/javascript">
+//<![CDATA[
+var theForm = document.forms['form1'];
+if (!theForm) {
+    theForm = document.form1;
+}
+function __doPostBack(eventTarget, eventArgument) {
+    if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+        theForm.__EVENTTARGET.value = eventTarget;
+        theForm.__EVENTARGUMENT.value = eventArgument;
+        theForm.submit();
+    }
+}
+//]]>
+</script>
+
+
+<script src="/EPermit/WebResource.axd?d=pynGkmcFUV13He1Qd6_TZFiTAss9wn-ggC87ZKlOsfeyHtK3v5oo88oe_ENgbf7NkquPI9nGm0ZeDY32kieSmA2&amp;t=638628405619783110" type="text/javascript"></script>
+
+
+<script src="/EPermit/ScriptResource.axd?d=D9drwtSJ4hBA6O8UhT6CQqXXwKE1QPjirtHKR7pVUixXl8Han8lOgiYxmu60Lr3MlXhK1Qez0zSpE6naBqfh7TucRytdXllXM3L9X3PXsbUBGgFrFi1-SG3ZCqrtl7lDpMbyiPSYS53dnfgXgheVWmWV_Ymx2AIxNS_qzeGv5Gw1&amp;t=2a9d95e3" type="text/javascript"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof(Sys) === 'undefined') throw new Error('ASP.NET Ajax client-side framework failed to load.');
+//]]>
+</script>
+
+<script src="/EPermit/ScriptResource.axd?d=JnUc-DEDOM5KzzVKtsL1teeiCvTm5vgEKfhaOD0Zs049Vzv8VnT7Pl2Z-jx4bH18SV5jYnZ9dJDUB8kiSvXNrjiJTlTbQamTDhw0ilHpc3Xgp2fEeFDvwDiLGtkhKus8xDTAPsJu7znfKnJm4JABwVZrzPaOFFKJbqCqXKOnlch_dzknJcyCFEvjVuJ5Nwv20&amp;t=2a9d95e3" type="text/javascript"></script>
+<script src="/EPermit/WebResource.axd?d=JoBkLzP19aTuxbWOhHobYkOlO1dR-Mz2U7YV775ukV-joT3K93mAUqHXp6CkKu4IQGHdDqdc4NJB_UPrXIa0Iw2&amp;t=638628405619783110" type="text/javascript"></script>
+<div class="aspNetHidden">
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="B88DDA8B" style="">
+</div>
+        <script type="text/javascript">
+//<![CDATA[
+Sys.WebForms.PageRequestManager._initialize('SMPartialRender', 'form1', ['tUpdateOTP','UpdateOTP'], ['btnGenerateOtp','btnGenerateOtp'], [], 90, '');
+//]]>
+</script>
+
+
+
+        <div class="l-panel" style="z-index: 10 !important;">
+            <div class="sp-container">
+                <div class="sp-content">
+                    <h2 class="frame-1">Welcome To   </h2>
+                    <h2 class="frame-2">Mines &amp; Geology Department</h2>
+                    <h2 class="frame-3">Telangana State </h2>
+                    <h2 class="frame-4">Now!</h2>
+                    
+                </div>
+            </div>
+        </div>
+
+        <div class="r-panel" style="z-index: 1000 !important;">
+
+            <div class="log-block">
+                <img src="Images/telanganalogo.png">
+                <div style="font-family: Verdana; font-size: 28px; color: #fff; margin: 10px 0px; text-transform: uppercase;">Mines &amp; Geology</div>
+                <div class="log-panel fl w-100">
+                    <div class="hd">Government of Telangana</div>
+
+                    
+                    <div id="divotp" class="w-98 fl p-10" style="margin-top: -13px;">
+                        <label>Username</label><span class="clearfix"></span>
+                        <input name="txtLoginUsername" type="text" maxlength="15" id="txtLoginUsername" class="validate fl w-100 input-b-b m-b-20" style="">
+                        <label>Password</label><span class="clearfix"></span>
+                        <input name="txtLoginPassword" type="password" id="txtLoginPassword" class="validate fl w-100 input-b-b m-b-20" style="">
+                        <input type="submit" name="btnGetOtp" value="LOGIN" id="btnGetOtp" class="log-btn waves-light w-100 fl white f-16 m-b-20" style="">
+                    </div>
+                    
+                    <div class="w-98 fl p-10">
+                        <aside><a href="#ForgotPasswordPopUp" data-toggle="modal">Forgot Password?</a></aside>
+                        <span id="SpanLoginErrorMessage" style="color: red; font-weight: bold;"></span>
+                        <span id="OtpMessageForTest" style="color: red; font-weight: bold;"></span>
+                    </div>
+                </div>
+                
+                <div class="log-panel fl w-100" style="text-align: left; padding: 2px;">
+                    <span id="Span2" style="font-weight: bold; font-size: 18px; text-align: start !important;">
+                        
+                        In case of any login issues, please send your request through a government email to
+                            <br>
+                        <a>itcell-dmg@telangana.gov.in</a>  Such requests will only be accepted via email.
+                      
+                    </span>
+                </div>
+
+            </div>
+        </div>
+        <div>
+            <span id="Label1"></span>
+            <br>
+            <span id="Label2"></span>
+            <br>
+            <span id="Label3"></span>
+        </div>
+
+        <div id="ForgotPasswordPopUp" class="modal fade bs-example-modal-sm" data-backdrop="static" data-keyboard="false">
+            <div class="modal-dialog modal-sm">
+                <div id="UpdateOTP">
+	
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close black" style="font-size: larger;" data-dismiss="modal" onclick="ClearForgetPasswordControls();" aria-hidden="true">
+                                    ×
+                                </button>
+                                <h4 class="modal-title">Forgot Password</h4>
+                            </div>
+                            <div class="modal-body" style="padding-bottom: 25px;">
+
+
+                                <div class="col-xs-8 col-sm-8 col-md-9 col-lg-8 p-0 txt-left">
+                                    <input name="txtforgetUserid" type="text" maxlength="12" id="txtforgetUserid" class="validate input-b-b w-100 fl" placeholder="ENTER USER ID" style="">
+                                </div>
+                                <div class="col-xs-4 col-sm-4 col-md-3 col-lg-2 txt-cnt">
+                                    <input type="submit" name="btnGenerateOtp" value="GET OTP" id="btnGenerateOtp" class="btn btnn btn-xs text-uppercase btn-warning" style="">
+                                </div>
+                                <div class="clearfix"></div>
+                                <div class="w-100 fl txt-cnt p-10">
+                                    <span id="PopUpUserIDErrorMessage" class="m-auto f-16 red"></span>
+                                </div>
+                                <div class="clearfix"></div>
+                                
+
+                                
+                                
+                                <span id="ChangePasswordErrorMessage" class="danger m-t-15 m-auto f-14"></span>
+                                <div class="clearfix"></div>
+                                <div class="col-xs-12 col-sm-12 col-md-12 txt-cnt">
+                                    
+                                </div>
+                                <div class="clearfix"></div>
+                                <div class="col-xs-12 col-sm-12 col-md-12">
+                                    &nbsp;
+                                </div>
+                            </div>
+                        </div>
+                    
+</div>
+            </div>
+        </div>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="Content/JS%20NEW/bootstrap.min.js"></script>
+
+    
+
+<script type="text/javascript">
+//<![CDATA[
+WebForm_AutoFocus('txtLoginUsername');//]]>
+</script>
+</form>
+
+
+</body></html>

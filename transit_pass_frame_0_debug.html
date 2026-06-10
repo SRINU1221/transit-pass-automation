@@ -1,0 +1,847 @@
+<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>
+
+</title><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"><link href="../Content/CSS%20NEW/bootstrap.min.css" rel="stylesheet"><link href="../Content/CSS%20NEW/custom_1.css" rel="stylesheet"><link href="../Content/CSS%20NEW/sb-admin.css" rel="stylesheet"><link href="../Content/CSS%20NEW/Dasboard.css" rel="stylesheet"><link href="../Content/CSS%20NEW/styles.css" rel="stylesheet"><link href="../Content/jquery-ui.css" rel="stylesheet"><link href="../Content/CSS%20NEW/LoginCss/POPUP.css" rel="stylesheet"><link href="../font-awesome%20New/css/font-awesome.min.css" rel="stylesheet" type="text/css"><link href="../Content/CSS%20NEW/feedback.css" rel="stylesheet"><link href="../Content/CSS%20NEW/StartUpPopUp.css" rel="stylesheet">
+    <script type="text/javascript">
+        window.onload = function () {
+            document.getElementById('close').onclick = function () {
+                this.parentNode.parentNode.parentNode
+                  .removeChild(this.parentNode.parentNode);
+                return false;
+            };
+        };
+    </script>
+    <!-- temporary Added-->
+    
+    <!--End temporary Added-->
+    <script>
+        function preventBack() { window.history.forward(); }
+        setTimeout("preventBack()", 0);
+        window.onunload = function () { null };
+    </script>
+    
+
+    <script src="../Scripts/jquery.min.js"></script>
+    <script src="../Scripts/Fonts/EAN_UPC.js"></script>
+    <script src="../Scripts/Fonts/CODE128.js"></script>
+    <script src="../Scripts/Fonts/JsBarcode.js"></script>
+    <script>
+        var $Barcode = $.noConflict(true);
+    </script>
+
+
+    <script src="../Scripts/validations.js" type="text/javascript"></script>
+    <script type="text/javascript">
+
+        function changePwd() {
+
+
+
+            if (!isblank(document.getElementById("txtnewpwd").value, 'New Password')) return false;
+            if (!isAtleastOnedigit(document.getElementById("txtnewpwd").value, 'New Password')) return false;
+            if (!isPassword(document.getElementById("txtnewpwd").value, 'New Password')) return false;
+
+            if (!isblank(document.getElementById("txtconfirmpwd").value, 'Re-enter New Password')) return false;
+            if (!isAtleastOnedigit(document.getElementById("txtconfirmpwd").value, 'Re-enter New Password')) return false;
+            if (!isPassword(document.getElementById("txtconfirmpwd").value, 'Re-enter New Password')) return false;
+
+
+
+            if ((document.getElementById("txtnewpwd").value.length < 8) && (document.getElementById("txtconfirmpwd").value.length < 8)) {
+                alert("Password should have a minimum prescribed number of characters \n and values.!");
+                return false;
+            }
+            if (!isAtleastOnedigit(document.getElementById("txtnewpwd").value)) return false;
+
+            if (document.getElementById("txtpresentpwd").value == document.getElementById("txtnewpwd").value) {
+                        alert('Old Password and New Password must be different. Kindly Recheck!')
+                        return (false);
+                    }
+
+            if (document.getElementById("txtnewpwd").value != document.getElementById("txtconfirmpwd").value) {
+                alert('Passwords are not matching. Kindly Recheck!')
+                return (false);
+            }
+            
+        }
+    </script>
+     <style type="text/css">
+        .no-copy {
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE10+ */
+            user-select: none; /* Standard */
+        }
+    </style>
+</head>
+<body class="no-copy" oncontextmenu="return false;" autocomplete="off" oncopy="return false" oncut="return false">
+    <form method="post" action="./PrintTransitPass.aspx?id=1l518nwWN68%3d&amp;Pid=uloK9pRaV+Y%3d" id="form1" class="m-0">
+<div class="aspNetHidden">
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="">
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="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">
+</div>
+
+<script type="text/javascript">
+//<![CDATA[
+var theForm = document.forms['form1'];
+if (!theForm) {
+    theForm = document.form1;
+}
+function __doPostBack(eventTarget, eventArgument) {
+    if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+        theForm.__EVENTTARGET.value = eventTarget;
+        theForm.__EVENTARGUMENT.value = eventArgument;
+        theForm.submit();
+    }
+}
+//]]>
+</script>
+
+
+<script src="/EPermit/WebResource.axd?d=pynGkmcFUV13He1Qd6_TZFiTAss9wn-ggC87ZKlOsfeyHtK3v5oo88oe_ENgbf7NkquPI9nGm0ZeDY32kieSmA2&amp;t=638628405619783110" type="text/javascript"></script>
+
+
+<script src="/EPermit/ScriptResource.axd?d=D9drwtSJ4hBA6O8UhT6CQqXXwKE1QPjirtHKR7pVUixXl8Han8lOgiYxmu60Lr3MlXhK1Qez0zSpE6naBqfh7TucRytdXllXM3L9X3PXsbUBGgFrFi1-SG3ZCqrtl7lDpMbyiPSYS53dnfgXgheVWmWV_Ymx2AIxNS_qzeGv5Gw1&amp;t=2a9d95e3" type="text/javascript"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof(Sys) === 'undefined') throw new Error('ASP.NET Ajax client-side framework failed to load.');
+//]]>
+</script>
+
+<script src="/EPermit/ScriptResource.axd?d=JnUc-DEDOM5KzzVKtsL1teeiCvTm5vgEKfhaOD0Zs049Vzv8VnT7Pl2Z-jx4bH18SV5jYnZ9dJDUB8kiSvXNrjiJTlTbQamTDhw0ilHpc3Xgp2fEeFDvwDiLGtkhKus8xDTAPsJu7znfKnJm4JABwVZrzPaOFFKJbqCqXKOnlch_dzknJcyCFEvjVuJ5Nwv20&amp;t=2a9d95e3" type="text/javascript"></script>
+<div class="aspNetHidden">
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="029675D1">
+</div>
+        <script type="text/javascript">
+//<![CDATA[
+Sys.WebForms.PageRequestManager._initialize('ctl00$SMPartialRender', 'form1', ['tctl00$UpdateOTP','UpdateOTP'], ['ctl00$btnchangepwd','btnchangepwd'], [], 90, 'ctl00');
+//]]>
+</script>
+
+        <div id="wrapper">
+            <header class="navbar-fixed-top">
+                <nav class="navbar navbar-inverse">
+                    <div class="container-fluid">
+                        <div class="navbar-header hidden-sm hidden-xs">
+                            <a class="navbar-brand white text-center txt-logo">
+                                <img src="../Images/tslogo.png" style="width: 65px; height: 75px">
+                            </a>
+                        </div>
+                        <div class="col-sm-12 col-md-9">
+                            <h2 class="text-center" style="color: #ffb600; font-style: italic; font-size: 16px;">e - MINING<br>
+                                <span class="sm-txt p-0 m-0" style="font-style: normal; font-size: 16px;">DEPARTMENT OF MINES &amp; GEOLOGY</span><br>
+                                <span id="Master_spn_OfficeName" style="font-style: normal; font-size: 16px;" class="sm-txt p-0 m-0">RANGAREDDY</span>
+                            </h2>
+                        </div>
+                        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                            <ul class="nav navbar-nav navbar-right helpdsk ">
+                                <li class="dropdown hidden-sm hidden-xs" style="padding-top: 10px;">
+                                    <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><i class="fa fa-user"></i>&nbsp;&nbsp;<span id="SpanMasterPageLoginUserId">M302023164</span><b class="caret"></b></a>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a href="#changepwdpopup" data-toggle="modal" onclick="ClearChangePasswordControls();"><i class="fa fa-lock"></i>&nbsp;Change Password</a>
+                                        </li>
+                                        <li class="divider"></li>
+                                        
+                                        <li><a href="../LogOut.aspx"><i class="fa fa-power-off"></i>&nbsp;Logout</a></li>
+                                    </ul>
+                                    <span id="span_DeptDashBoard_lastlogin" class="sm-txtcl" style="color: #90959c">Last Login: 28 May  10:23 AM</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </nav>
+                <div class="navbar navbar-default  custom-nav">
+                    <div class="container-fluid">
+                        <div class="navbar-header">
+                            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                                <span class="icon-bar"></span>
+                                <span class="icon-bar"></span>
+                                <span class="icon-bar"></span>
+                            </button>
+                        </div>
+                        <div id="DivMenu" class="navbar-collapse collapse"><ul class="nav navbar-nav"><li><a href="../MDL/MDLDashboard.aspx"> Home </a></li><li class="dropdown menu-large"><a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false" href="#">Payments<b class="caret"></b></a><ul class="dropdown-menu megamenu row"><li class="col-sm-6"><ul><li class="dropdown-header">e-Pay</li><li><a href="../MDL/MDLTopUp.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Topup</span></a></li><li><a href="../MDL/MDLPendingAmounts.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Pending Payments</span></a></li></ul></li><li class="col-sm-6"><ul><li class="dropdown-header">Bank Transactions</li><li><a href="../Lessee/BankingTransactions.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Success</span></a></li><li><a href="../MDL/PendingMDLBankTransactions.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Pending</span></a></li></ul></li></ul></li><li class="dropdown menu-large"><a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false" href="#">e-Trans<b class="caret"></b></a><ul class="dropdown-menu megamenu row"><li class="col-sm-4"><ul><li class="dropdown-header">Permits</li><li><a href="../MDL/MineralPermitRequestNew.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>New Permit</span></a></li><li><a href="../MDL/MDLApprovedPermitsNew.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Approved Permits</span></a></li><li><a href="../MDL/MDLReprintTransitPass.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Transit Pass Reprint</span></a></li></ul></li><li class="col-sm-4"><ul><li class="dropdown-header">Production</li><li><a href="../MDL/FinishedOtherMineralProduction.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Finished RAW Mineral</span></a></li><li><a href="../MDL/RawProductionTransitFormWise.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>TF wise Production</span></a></li><li><a href="../MDL/DayWiseDispatchQuantity.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>MDL Day Wise Dispatch Quantity</span></a></li><li><a href="../MDL/DayWiseReceivedQuantity.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>MDL Day Wise Received Quantity</span></a></li><li><a href="../MDL/DayWiseFinishedQuantity.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>MDL Day Wise Finished Quantity By MDLID</span></a></li></ul></li><li class="col-sm-4"><ul><li class="dropdown-header">General</li><li><a href="../MDL/MDLMapToOtherMDL.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>MDL To MDL Mapping</span></a></li><li><a href="../MDLReports/MDLOMRawProductionSummery.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Available Mineral</span></a></li><li><a href="../MDL/FinishedMineralAggregatorWise.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Finished Aggregator Wise</span></a></li></ul></li></ul></li><li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false" href="#">Applications<b class="caret"></b></a><ul class="dropdown-menu megamenu"><li class="col-sm-12"><ul><li class="dropdown-header">MDL</li><li><a href="../MDL/Amendment.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Amandment</span></a></li><li><a href="../MDL/MDLRenewalApplication.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>MDL Renewal</span></a></li><li><a href="../Department/ViewMDLRenewalApplicationsByID.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>View MDL Renewal</span></a></li></ul></li></ul></li><li class="dropdown menu-large"><a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false" href="#">Stationery<b class="caret"></b></a><ul class="dropdown-menu megamenu row"><li class="col-sm-4"><ul><li class="dropdown-header">New Indent</li><li><a href="../MDL/NewStationeryRequestForMDL.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>New Indent</span></a></li></ul></li><li class="col-sm-4"><ul><li class="dropdown-header">View Indent</li><li><a href="../MDL/MDLStationeryRequestInfo.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>View Indent</span></a></li><li><a href="../MDLReports/MDLAvailableIndents.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Available</span></a></li></ul></li><li class="col-sm-4"><ul><li class="dropdown-header">General</li><li><a href="../Department/MDLFailureStationeries.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Failure (MDL)</span></a></li></ul></li></ul></li><li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false" href="#">Reports<b class="caret"></b></a><ul class="dropdown-menu megamenu"><li class="col-sm-12"><ul><li class="dropdown-header">2026-27 Reports</li><li><a href="../Department/MDLPermitsReport.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>MDL Permits</span></a></li></ul></li></ul></li><li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false" href="#">General<b class="caret"></b></a><ul class="dropdown-menu megamenu"><li class="col-sm-12"><ul><li class="dropdown-header">General</li><li><a href="../Lessee/UploadSignature.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Upload Signature</span></a></li><li><a href="../Lessee/UploadPhoto.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Upload Photo</span></a></li></ul></li></ul></li><li class="dropdown menu-large"><a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false" href="#">Government Works<b class="caret"></b></a><ul class="dropdown-menu megamenu row"><li class="col-sm-6"><ul><li class="dropdown-header">Work Details</li><li><a href="../GovtWorks/GovtWorksApplication.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>New Works</span></a></li><li><a href="../GovtWorks/ViewGovtWorksGrid.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>View Works</span></a></li><li><a href="../GovtWorks/ViewContractorWorkDetails.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Utilization Work Report</span></a></li></ul></li><li class="col-sm-6"><ul><li class="dropdown-header">Fresh Applications</li><li><a href="../GovtWorks/ContractorRegistration.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Contractor Registration</span></a></li></ul></li></ul></li><li class="dropdown"><a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false" href="#">Vehicle<b class="caret"></b></a><ul class="dropdown-menu megamenu"><li class="col-sm-12"><ul><li class="dropdown-header">Vehicle</li><li><a href="../Lessee/VehicleRegistration.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Vehicle Registration</span></a></li><li><a href="../Lessee/ViewVehicleDetails.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>View Vehicle Details</span></a></li></ul></li></ul></li><li class="dropdown menu-large"><a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false" href="#">Stone Crusher<b class="caret"></b></a><ul class="dropdown-menu megamenu row"><li class="col-sm-6"><ul><li class="dropdown-header">Stone Crusher Registration</li><li><a href="../MDL/StoneCrusherRegistrationN.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Stone Crusher Registration</span></a></li><li><a href="../Department/ViewStoneCrusherDetailsByOffice.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>View Stone Crusher Report</span></a></li></ul></li><li class="col-sm-6"><ul><li class="dropdown-header">Power Factor</li><li><a href="../MDL/ViewStoneCrusherFormAReport.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Form-A &amp; B Report </span></a></li><li><a href="../MDL/StoneCrusherFormAEntry.aspx"><i class="fa fa-angle-right"></i>&nbsp;<span>Form-A &amp; B Entry</span></a></li></ul></li></ul></li><li><a href="javascript:void(0);" class="hidden-sm hidden-md hidden-lg" onclick="PopUpConfirm();"><i class="fa fa-lock"> </i> Change Password </a></li><li><a class="hidden-sm hidden-md hidden-lg" href="../LogOut.aspx"><i class="fa fa-power-off"></i> Logout </a></li></ul></div>
+                    </div>
+                </div>
+            </header>
+            <header class="navbar-fixed-top" style="display: none;">
+                <nav class="navbar navbar-inverse  head-top" role="navigation">
+                    <div class="navbar-header head-wid">
+                        <div class="fr hidden-xs hidden-md hidden-sm hidden-lg">
+                            <div class="parallelogram bg-1 txt-cnt fl">
+                                <span id="Master_lbl_first" class="digital" style="font-size: Small;">Permits</span><br>
+                                <span id="spnpermits" class="digital f-b">35</span>
+                            </div>
+                            <div class="parallelogram bg-3 txt-cnt fl">
+                                <span id="Master_lbl_second" class="digital" style="font-size: Small;">Transit Passes</span><br>
+                                <span id="spntransitforms" class="digital f-b">21588</span>
+                            </div>
+                            <div class="parallelogram bg-1 txt-cnt fl">
+                                <span id="Master_lbl_third" class="digital" style="font-size: Small;">Stationery</span><br>
+                                <span id="spnstationery" class="digital f-b">3404</span>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            </header>
+            <div id="page-wrapper">
+                <div class="page-head w-100">
+                    <div class="container-fluid">
+                        <div class="col-xs-12 col-sm-6">
+                            <div id="DivPageHeadingForEveryPage" class="name f-b">Transit Pass Print</div>
+                            
+                        </div>
+                        <div id="DivBalanceForAllUsers" class="col-xs-12 col-sm-6" align="right">
+                            <p class="name f-b">
+                                &nbsp;My Balance (₹) :                                      
+                                      <span id="spntotal" class="digital" style="display: block; float: right; color: #0277e5; text-decoration: none; font-size: 20px;">56,498.69</span>
+                                &nbsp;
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="container-fluid content-pad" style="padding-bottom: 0px; margin-top: 10px;">
+                    
+
+
+    
+        <div class="w-100 fl container-fluid">
+
+            <div class="block black bg-white">
+                <div class="content">
+                    
+
+                        <div id="PrintContent" style="color: black;">
+                            <!-- Original form-->
+                            <table cellspacing="0" cellpadding="0" align="center" style="width: 90%; border: 0; margin-top: 80px;">
+                                <tbody><tr>
+                                    <td style="height: 415px !important; vertical-align: top;">
+
+                                        <table border="0" cellspacing="0" cellpadding="0" style="border: 0px #999 solid; margin-top: 0px; width: 100%" align="center">
+
+                                            <!--Header row -->
+                                            <tbody><tr>
+                                                <td align="center" valign="top" style="border-top: 0px #999 solid;">
+
+                                                    <table cellspacing="0" cellpadding="0" border="0" width="100%">
+                                                        <tbody><tr>
+                                                            <td align="center" valign="middle" style="padding-left: 10px; width: 25%; text-align: center !important;">
+                                                                <img id="Original" src="../Images/tslogo.png" width="74" height="81">
+                                                            </td>
+                                                            <td align="center" valign="middle" style="width: 50%; font-family: 'Times New Roman', Times, serif; font-weight: bold; font-size: 14px; line-height: 20px;">ASSISTANT DIRECTOR :
+                                                            <span id="ContentPlaceHolder1_lbl_OPTP_OfficeName">RANGAREDDY</span><br>
+                                                                TRANSIT PASS (Original)<br>
+                                                                Stationery No :
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_StationaryNo" style="font-weight:bold;">TMGA29781567</span>
+                                                            </td>
+                                                            <td align="center" valign="middle" style="padding-left: 10px; width: 25%;">&nbsp;</td>
+                                                        </tr>
+                                                    </tbody></table>
+                                                    <table cellspacing="0" cellpadding="2" border="0" width="100%">
+                                                        <tbody><tr>
+                                                            <td align="center" valign="middle" class="formbg2" style="background-color: #ffffff; width: 15%; border-right: 0px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <img id="Topbarcode" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANwAAAAeCAYAAABHenA+AAABoklEQVR4AeyTW4oDMQwEh9z/ztktQzPG5GUN9sdQy3bUsqWYFPTj+ePfcRxPxHjq6OkR96j36TlD6alRzl/1uaOizFDpER6NPj0VMRP1PT7iHk+N+j6eGjEXT6VH+Cg9NeIOT0X4qO/xqL9LT0W5o77rOUfMIDzCR33fe+5f9TlLzdynfpwZZ7lHnCM8wiM8Gv27PudUxG4vzlDO8FHOqJz1NZ7zb3r8D/svAQlsImDgNoH2GQlAwMBBQUlgEwEDtwn0DZ/xJxUIGLgCNFckUCVg4Krk3JNAgYCBK0BzRQJVAgauSs49CRQIGLgGzQ8J7CFg4PZw9hUJNAIGrmHwQwJ7CBi4PZx9RQKNgIFrGPyQQJXA3J6Bm+PltAQuETBwl/C5LIE5AgZujpfTErhEwMBdwueyBOYIGLg5Xvee9tctJ2DgliP2AQmcBAzcyUIngeUEDNxyxD4ggZOAgTtZ6CSwnMBtA7ecnA9IoEDAwBWguSKBKgEDVyXnngQKBAxcAZorEqgSMHBVcu7dlsDKH2bgVtL1uyUwEDBwAxBbCawk8AcAAP//yFbJcQAAAAZJREFUAwBcsSQ1VH5q1gAAAABJRU5ErkJggg==">
+                                                            </td>
+                                                            <td align="right" valign="middle" class="formbg2" style="background-color: #ffffff; width: 85%; border-right: 0px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; text-align: right;">&nbsp;&nbsp;&nbsp;&nbsp;Date
+                                                            &amp; Time of Dispatch :
+                                                            <span id="ContentPlaceHolder1_lbl_OPTP_Dispatcheddate">03/06/2026 04:22 AM</span>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody></table>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td align="center" valign="top" style="border-top: 1px #999 solid;">
+
+                                                    <table border="0" cellpadding="0" cellspacing="0" align="center" style="border: 1px #999999 solid; width: 100%;">
+
+                                                        <tbody><tr>
+
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; width: 22%;">Permit No
+                                                            </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; width: 28%;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_PermitNo">M14RGR02219 </span>
+                                                            </td>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">TransitPass No
+                                                            </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_TransitPassNo">TP14RGR048792  </span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; width: 22%;">Consignor ID</td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; width: 28%;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_MDLID">M302023164</span>
+                                                            </td>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Consignor Name </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_MDLname">STARKE ROCKSAND LLP</span>
+                                                            </td>
+
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Consignee Name
+                                                            </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_ConsigneeName">ROCKSAND MINERALS PVT LTD</span>
+                                                            </td>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Consignee Mobile
+                                                            </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_ConsigneeMobile">9988783456</span>&nbsp;
+                                                            </td>
+
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Consignee Address </td>
+                                                            <td colspan="3" style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_ConsigneeAddress">Mamidpally,Balapur,RANGAREDDY.</span>
+                                                            </td>
+                                                        </tr>
+
+                                                        <tr>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Destination </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_Destination">Mamidpally</span>
+                                                            </td>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Mineral Name
+                                                            </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_Mineral">Road Metal - ( Finished )</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Vehicle No </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_VehicleNo">TS08UE5882</span>
+                                                            </td>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Driver Name
+                                                            </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_DriverName">BABU</span>
+                                                            </td>
+                                                        </tr>
+
+                                                        <tr>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Driver License No </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_DriverLicenseNo">DLFAP-02246562007</span>
+                                                            </td>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">GST
+                                                            </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_VatNo">36ADDFS5808E1Z4</span>
+                                                            </td>
+                                                        </tr>
+
+                                                        <tr>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Distance in K.M. </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_DistanceKM">1</span>
+                                                            </td>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Required Time  [in Hrs]
+                                                            </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_RequiredTime">003:00</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr id="ContentPlaceHolder1_tr_OPTP_DispatchedQty">
+	<td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Dispatch Quantity </td>
+	<td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_DispatchedQty">40.000</span>&nbsp;<span id="ContentPlaceHolder1_lbl_OPTP_Aggregater">(M Sand)</span>
+                                                            </td>
+	<td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Units
+                                                            </td>
+	<td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_Units">MT</span>
+                                                            </td>
+</tr>
+
+                                                        
+                                                    </tbody></table>
+                                                </td>
+                                            </tr>
+
+                                            
+
+                                            <tr>
+                                                <td align="center" valign="top" style="border-top: 0px #999 solid;">
+
+                                                    <!--Blocks And KHandas -->
+                                                    <table cellpadding="0" cellspacing="0" align="center" style="border: 1px #999999 solid; width: 100%">
+
+                                                        
+
+                                                        
+
+                                                        
+
+                                                        
+
+                                                    </table>
+
+                                                    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 5px;">
+                                                        <tbody><tr>
+                                                            <td align="left" valign="middle" style="padding-right: 6px; border: 0px #999999 solid; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; font-size: 12px; height: 18px; color: #000;">Note:This Transit Pass is valid upto
+                                                                <span id="ContentPlaceHolder1_lbl_OPTP_ValidTo" style="color:Red;">03/06/2026 07:22 AM</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td align="left" valign="middle" style="padding-right: 6px; border: 0px #999999 solid; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; font-size: 12px; height: 18px; color: #ff0000;">The Transit Pass is valid only on the Printed Secured Stationery with Hologram embedded.
+                                                            </td>
+                                                        </tr>
+                                                    </tbody></table>
+
+                                                </td>
+                                            </tr>
+                                        </tbody></table>
+
+                                    </td>
+                                </tr>
+
+                            </tbody></table>
+
+                            <!-- duplicate form-->
+                            <table cellspacing="0" cellpadding="0" align="center" style="width: 90%; border: 0; margin-top: 0px;">
+                                <tbody><tr>
+                                    <td style="padding-top: 90px;">
+                                        <table cellspacing="0" cellpadding="0" style="border: 0px #999 solid; margin-top: 0px; width: 100%;" align="center">
+                                            <tbody><tr>
+                                                <td align="center" valign="top" style="border-top: 0px #999 solid;">
+
+                                                    <table cellspacing="0" cellpadding="2" border="0" width="100%">
+                                                        <tbody><tr>
+                                                            <td align="center" valign="middle" style="padding-left: 10px; width: 25%;">
+                                                                <img id="Duplicate" alt="" src="../Images/tslogo.png" width="74" height="81">
+                                                            </td>
+                                                            <td align="center" valign="middle" style="width: 50%; font-family: 'Times New Roman', Times, serif; font-weight: bold; font-size: 14px; line-height: 20px;">ASSISTANT DIRECTOR :
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_Office">RANGAREDDY</span><br>
+                                                                TRANSIT PASS (Duplicate)<br>
+                                                                Stationery No :
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_StationaryNo" style="font-weight:bold;">TMGA29781567</span>
+                                                            </td>
+                                                            <td align="center" valign="middle" style="padding-left: 10px; width: 25%;">&nbsp;</td>
+                                                        </tr>
+                                                    </tbody></table>
+                                                    <table cellspacing="0" cellpadding="2" border="0" width="100%">
+                                                        <tbody><tr>
+                                                            <td align="center" valign="middle" style="background-color: #fff; width: 15%; border-right: 0px #999999 solid; text-align: center !important; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <img id="Bottombarcode" style="margin: 0px auto;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANwAAAAeCAYAAABHenA+AAABoklEQVR4AeyTW4oDMQwEh9z/ztktQzPG5GUN9sdQy3bUsqWYFPTj+ePfcRxPxHjq6OkR96j36TlD6alRzl/1uaOizFDpER6NPj0VMRP1PT7iHk+N+j6eGjEXT6VH+Cg9NeIOT0X4qO/xqL9LT0W5o77rOUfMIDzCR33fe+5f9TlLzdynfpwZZ7lHnCM8wiM8Gv27PudUxG4vzlDO8FHOqJz1NZ7zb3r8D/svAQlsImDgNoH2GQlAwMBBQUlgEwEDtwn0DZ/xJxUIGLgCNFckUCVg4Krk3JNAgYCBK0BzRQJVAgauSs49CRQIGLgGzQ8J7CFg4PZw9hUJNAIGrmHwQwJ7CBi4PZx9RQKNgIFrGPyQQJXA3J6Bm+PltAQuETBwl/C5LIE5AgZujpfTErhEwMBdwueyBOYIGLg5Xvee9tctJ2DgliP2AQmcBAzcyUIngeUEDNxyxD4ggZOAgTtZ6CSwnMBtA7ecnA9IoEDAwBWguSKBKgEDVyXnngQKBAxcAZorEqgSMHBVcu7dlsDKH2bgVtL1uyUwEDBwAxBbCawk8AcAAP//yFbJcQAAAAZJREFUAwBcsSQ1VH5q1gAAAABJRU5ErkJggg==">
+                                                            </td>
+                                                            <td align="right" valign="middle" class="formbg2" style="background-color: #fff; width: 85%; border-right: 0px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; text-align: right;">&nbsp;&nbsp;&nbsp;&nbsp;Date
+                                                                &amp; Time of Dispatch :
+                                                            <span id="ContentPlaceHolder1_lbl_DPTP_Dispatcheddate">03/06/2026 04:22 AM</span>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody></table>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td align="center" valign="top" style="border-top: 1px #999 solid;">
+                                                    <table cellpadding="0" cellspacing="0" align="center" style="border: 1px #999999 solid; width: 100%;">
+                                                        <tbody><tr>
+
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; width: 22%;">Permit No
+                                                            </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; width: 28%;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_PermitNo">M14RGR02219 </span>
+                                                            </td>
+
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; width: 22%;">TransitPass No
+                                                            </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_TransitPassNo">TP14RGR048792  </span>
+
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; width: 22%;">Consignor ID</td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; width: 28%;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_MDLID">M302023164</span>
+                                                            </td>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Consignor Name </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_MDLName">STARKE ROCKSAND LLP</span>
+                                                            </td>
+
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Consignee Name
+                                                            </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_ConsigneeName">ROCKSAND MINERALS PVT LTD</span>
+                                                            </td>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; width: 22%;">Consignee Mobile
+                                                            </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_ConsigneeMobile">9988783456</span>&nbsp;
+                                                            </td>
+
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Consignee Address </td>
+                                                            <td colspan="3" style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_ConsigneeAddress">Mamidpally,Balapur,RANGAREDDY.</span>
+                                                            </td>
+                                                        </tr>
+
+
+
+                                                        <tr>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Destination </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_Destination">Mamidpally</span>
+                                                            </td>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Mineral Name
+                                                            </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_Mineral">Road Metal - ( Finished )</span>
+                                                            </td>
+                                                        </tr>
+
+                                                        <tr>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; width: 22%;">Vehicle No </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_VehicleNo">TS08UE5882</span>
+                                                            </td>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; width: 22%;">Driver Name
+                                                            </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_DriverName">BABU</span>
+                                                            </td>
+                                                        </tr>
+
+                                                        <tr>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; width: 22%;">Driver License No </td>
+
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_DriverLicenseNo">DLFAP-02246562007</span>
+                                                            </td>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; width: 22%;">GST
+                                                            </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_VatNo">36ADDFS5808E1Z4</span>
+                                                            </td>
+                                                        </tr>
+
+                                                        <tr>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; width: 22%;">Distance in K.M. </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_DistanceKM">1</span>
+                                                            </td>
+                                                            <td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000; width: 22%;">Required Time [in Hrs]
+                                                            </td>
+                                                            <td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_RequiredTime">003:00</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr id="ContentPlaceHolder1_tr_DPTP_DispatchedQty">
+	<td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Dispatch Quantity </td>
+	<td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_DispatchedQty">40.000</span>&nbsp;<span id="ContentPlaceHolder1_lbl_DPTP_Aggregater">(M Sand)</span>
+                                                            </td>
+	<td style="background-color: #e7e5e5; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">Units
+                                                            </td>
+	<td style="background-color: #f2f2f2; border-right: 1px #999999 solid; border-bottom: 1px #999999 solid; padding-right: 6px; text-align: left; padding-left: 8px; vertical-align: middle; font-size: 11px; font-weight: bold; height: 18px; color: #000000;">
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_Units">MT</span>
+                                                            </td>
+</tr>
+
+                                                        
+                                                    </tbody></table>
+                                                </td>
+                                            </tr>
+                                            
+                                            <tr>
+                                                <td align="center" valign="top">
+
+                                                    <table border="0" cellpadding="0" cellspacing="0" align="center" style="border: 1px #999999 solid; width: 100%">
+
+                                                        
+
+                                                        
+
+                                                        
+
+                                                        
+
+                                                    </table>
+
+                                                    <table cellpadding="0" cellspacing="0" border="0" style="margin-top: 5px; width: 100%;">
+                                                        <tbody><tr>
+                                                            <td style="padding-right: 6px; border: 0px #999999 solid; text-align: left; padding-left: 8px; vertical-align: middle; font-weight: bold; font-size: 12px; height: 18px; color: #000;">Note:This Transit Pass is valid upto
+                                                                <span id="ContentPlaceHolder1_lbl_DPTP_ValidTo" style="color:Red;">03/06/2026 07:22 AM</span>
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td style="padding-right: 6px; border: 0px #999999 solid; text-align: left; padding-left: 8px; vertical-align: middle; font-weight: bold; font-size: 12px; height: 18px; color: #ff0000;">The Transit Pass is valid only on the Printed Secured Stationery with Hologram
+                                                            embedded.
+                                                            </td>
+                                                        </tr>
+                                                    </tbody></table>
+                                                </td>
+                                            </tr>
+                                        </tbody></table>
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td align="center" valign="top" style="font-size: 11px; font-family: Verdana; font-weight: bold; margin-top: 5px;">
+                                        <table border="0" cellspacing="0" cellpadding="0" width="98%" align="center">
+                                            <tbody><tr>
+                                                <td width="33%" align="center">
+                                                    <div id="ContentPlaceHolder1_Div1" style="margin: 0px auto; font-size: 11px; font-family: Verdana; font-weight: bold;">
+                                                        <img id="ContentPlaceHolder1_ADImageSign" src="data:image/jpeg;base64,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" style="height:40px;"><br>
+                                                        Assistant Director
+                                                        <br>
+                                                        of Mines &amp; Geology
+                                                    </div>
+                                                </td>
+                                                <td align="center" valign="bottom" width="33%">
+                                                    <div id="ContentPlaceHolder1_Div2" style="font-size: 11px; font-family: Verdana; font-weight: bold;">
+                                                        <img id="ContentPlaceHolder1_MDLImageSign" style="height:40px;"><br>
+                                                        <strong>Signature of MDL</strong>
+                                                    </div>
+                                                </td>
+                                                <td width="33%" align="center" style="font-size: 11px; font-family: Verdana; font-weight: bold;">
+                                                    <br>
+                                                    <img id="ContentPlaceHolder1_img1" alt="" height="40"><br>
+                                                    <strong>Signature of Driver</strong>
+                                                </td>
+                                            </tr>
+                                        </tbody></table>
+                                    </td>
+                                </tr>
+
+                            </tbody></table>
+
+                        </div>
+                        
+
+                        <center>
+                              <input type="submit" name="ctl00$ContentPlaceHolder1$btn_DPTP_Print" value="Print" onclick="javascript:return PrintThisPage();" id="ContentPlaceHolder1_btn_DPTP_Print" class="btn btnn btn-sm text-uppercase m-t-10">
+                        </center>
+
+                        <table cellpadding="0" cellspacing="0" border="0" align="center">
+                            <tbody><tr>
+                                <td align="left" valign="middle" style="font-family: Arial; font-size: 14px; font-weight: bold; color: #ff0000;">Please follow the guidelines for Printer Setup</td>
+                            </tr>
+                            <tr>
+                                <td align="center" valign="top" style="padding-top: 15px;">
+                                    <img src="../Images/Print.jpg">
+                                </td>
+                            </tr>
+                        </tbody></table>
+
+                    
+                </div>
+            </div>
+        </div>
+    
+
+
+    <script type="text/javascript">
+
+
+        function disableCtrlKeyCombination(e) {
+            //list all CTRL + key combinations you want to disable
+            var forbiddenKeys = new Array('a', 'n', 'c', 'x', 'v', 'j', 't', 'p');
+            var key;
+            var isCtrl;
+
+            if (window.event) {
+                key = window.event.keyCode;     //IE
+                if (window.event.ctrlKey)
+                    isCtrl = true;
+                else
+                    isCtrl = false;
+            }
+            else {
+
+                key = e.which;     //firefox
+                if (e.ctrlKey)
+                    isCtrl = true;
+                else
+                    isCtrl = false;
+            }
+
+            //if ctrl is pressed check if other key is in forbidenKeys array
+            if (isCtrl) {
+                for (i = 0; i < forbiddenKeys.length; i++) {
+                    //case-insensitive comparation
+                    if (forbiddenKeys[i].toLowerCase() == String.fromCharCode(key).toLowerCase()) {
+                        alert('Key combination CTRL + ' + String.fromCharCode(key) + ' has been disabled.');
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+    </script>
+
+    <script type="text/javascript">
+
+        $Barcode(document).ready(function () {
+
+            $Barcode("#Topbarcode,#Bottombarcode").JsBarcode($("#ContentPlaceHolder1_lbl_OPTP_TransitPassNo").html(), {
+                width: 1,
+                height: 30,
+                quite: 10,
+                format: "CODE128",
+                backgroundColor: "#fff",
+                lineColor: "#000"
+            });
+        });
+
+        function PrintThisPage() {
+
+            var sOption = "toolbar=no,location=no,directories=no,status=no,menubar=no,";
+            sOption += "scrollbars=yes,height=2000,width=2000";
+            var sWinHTML = document.getElementById('PrintContent').innerHTML;
+            var sHeadingHTML = '';
+            if (document.getElementById('headingContent') != null) {
+                sHeadingHTML = document.getElementById('headingContent').innerHTML;
+            }
+            var winprint = window.open("", "", sOption);
+            winprint.document.open();
+            winprint.document.write(sWinHTML);
+            //winprint.document.write('<link rel="stylesheet" href="../Content/EPermitCSS/EPermit.css"  type="text/css" /> <link href="../Content/EPermitCSS/bootstrap.min.css" rel="stylesheet" /><link href="../Content/EPermitCSS/font-awesome.css" rel="stylesheet" />');
+            winprint.document.close();
+            winprint.focus();
+            winprint.print();
+            winprint.close();
+
+            if (navigator.userAgent.toLowerCase().indexOf('chrome') > -1)
+                if (navigator.userAgent.indexOf("Chrome") != -1) {
+                    winprint.oncontextmenu = function () {
+                        return false;
+                    }
+
+                    function disableselect(e) {
+                        return false
+                    }
+                    winprint.document.onselectstart = new Function("return false")
+                    if (winprint.sidebar) {
+                        winprint.document.onmousedown = disableselect
+                    }
+
+                }
+            if ((navigator.userAgent.indexOf("MSIE") != -1) || (!!document.documentMode == true)) {
+                winprint.close();
+            }
+
+        }
+    </script>
+
+                </div>
+                <div class="container-fluid content-pad" style="padding-bottom: 0px; margin-top: 10px;">
+                    
+                </div>
+            </div>
+            <div class="footer">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p class="copyright" align="center">
+                                HELP DESK :
+                                <span id="lbl_helpdesk_Phoneno">8977522600</span>
+                                |
+                                <span id="lbl_helpdesk_email">dmgtg-it-mines@telangana.gov.in</span>,&nbsp;&nbsp;&nbsp;&nbsp; Stationery : 9740135858, &nbsp;&nbsp;&nbsp;&nbsp;AD OFFICE : 
+                                <span id="divadmobile">
+                                    <span id="lblADOfficeMobile">8639718177</span>
+                                </span>| 
+                                <span id="divademail">
+                                    <span id="lblADEmail">admg-rr-mines@telangana.gov.in</span>
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div></form>
+        <div class="modal m-auto" id="changepwdpopup" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <div id="UpdateOTP">
+	
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-hidden="true" onclick="ClearChangePasswordPopUpControls();">X</button>
+                                <h4 class="modal-title" id="H1">Change Password </h4>
+                            </div>
+                            <div class="modal-body">
+                                <div>
+                                    <h6 class="text-danger">1. Password should have a minimum 8 characters.</h6>
+                                    <h6 class="text-danger">2. Enter atleast One Numeric (0-9),one lower case,one upper case,one Special character !@#$_  in Password.</h6>
+                                </div>
+                                <div id="Div_Master_PwdChanged">
+                                    <label class="lableinput">Present Password</label><br>
+                                    <input name="ctl00$txtpresentpwd" type="password" maxlength="50" id="txtpresentpwd" class="form-control input-b-b" placeholder="Present Password">
+                                    <span id="lblErrorPassword" style="color: red;"></span>
+                                    <label class="lableinput">New Password</label><br>
+                                    <input name="ctl00$txtnewpwd" type="password" maxlength="50" id="txtnewpwd" class="form-control input-b-b" placeholder="New Password">
+                                    <span id="lblErrorNewPassword" style="color: red;"></span>
+                                    <label class="lableinput">Confirm Password</label><br>
+                                    <input name="ctl00$txtconfirmpwd" type="password" maxlength="50" id="txtconfirmpwd" class="form-control input-b-b" placeholder="New Password">
+                                    <span id="lblErrorconfirmPassword" style="color: red;"></span>
+                                    <input type="submit" name="ctl00$btnchangepwd" value="Change Password" onclick="return changePwd();" id="btnchangepwd" class="btn btnn btn-sm text-uppercase m-t-10" style="width: 100%">
+                                </div>
+                                
+                            </div>
+                        
+</div>
+                </div>
+            </div>
+        </div>
+ <!--StartUp PopUp Div START-->
+        
+        <!--StartUp PopUp Div End-->
+    
+    <script src="../Scripts/jquery-3.1.0.min.js?t=639160573362626954"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="../Content/JS%20NEW/bootstrap.min.js"></script>
+    <script src="../Scripts/jquery-ui.js" type="text/javascript"></script>
+    <script src="../Scripts/bootbox.min.js" type="text/javascript"></script>
+    <script src="../Content/JS NEW/feedback.js" type="text/javascript"></script>
+
+    <script type="text/javascript">
+        var jQueryUI = $.noConflict(true);
+    </script>
+    <script>
+        function PopUpConfirm() {
+            jQueryUI('#changepwdpopup').modal('show');
+            return true;
+        };
+    </script>
+    <script src="../Scripts/MDLValidations.js"></script>
+    <script>
+        var jQueryUI = jQueryUI.noConflict(true);
+    </script>
+    <script type="text/javascript">
+        jQueryUI(document).ready(function () {
+            $('.x').click(function () {
+                $('.overlay').hide();
+                return false;
+            });
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('.dashboard-value').each(function () {
+                $(this).prop('dashboard', 0).animate({
+                    Counter: $(this).text()
+                }, {
+                    duration: 3500,
+                    easing: 'swing',
+                    step: function (now) {
+                        $(this).text(Math.ceil(now));
+                    }
+                });
+            });
+        });
+    </script>
+
+
+</body></html>
