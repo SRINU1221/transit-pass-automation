@@ -294,6 +294,7 @@ with col_l:
     username = st.text_input("Username", placeholder="EPermit username", key="username")
     password = st.text_input("Password", placeholder="EPermit password",
                              type="password", key="password")
+    mode = st.selectbox("Automation Type", ["MDL", "TP"], index=0, key="mode")
 
     c1, c2 = st.columns(2)
     with c1:
@@ -376,6 +377,7 @@ with col_l:
             _password   = str(password)
             _headless   = bool(headless)
             _pdf_folder = str(st.session_state.pdf_folder)
+            _mode       = str(mode)
 
             def _run():
                 _log_q.put("🚀 Automation thread started…")
@@ -421,6 +423,7 @@ with col_l:
                             progress_fn = progress_fn,
                             headless    = _headless,
                             pdf_folder  = _pdf_folder,
+                            mode        = _mode,
                         )
                     )
                     try:

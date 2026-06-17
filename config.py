@@ -355,6 +355,65 @@ POPUP_PRINT_BTN = [
 ]
 
 
+# ─────────────────────────────────────────────────────────────
+#  Step 1b — TP (Transit Pass) specific selectors
+# ─────────────────────────────────────────────────────────────
+TP_CONSIGNEE_TYPE_DDL = [
+    "select[id*='ddlConsigneeType']",
+    "select[id*='ConsigneeType']",
+    "select[id*='ddlMDLType']",
+    "select[id*='MDLType']",
+    "select[id*='TypeMDL']",
+    "select[id*='ddlType']",
+]
+
+TP_DYNAMIC_DDL = [
+    "select[id*='AllMDLs']",
+    "select[id*='AllConsignees']",
+    "select[id*='ConsigneeID']",
+    "select[id*='ddlConsignee']",
+    "select[id*='MDLID']",
+    "div[id*='Consignee'] select",
+    "span[id*='Consignee'] select",
+    "tr[id*='Consignee'] select",
+]
+
+TP_DECIMAL_PLACES_CONTROL = [
+    "input[id*='decimal']",
+    "input[id*='Decimal']",
+    "input[id*='decplace']",
+    "input[id*='decplaces']",
+    "input[type='checkbox'][id*='Qty']",
+    "input[type='checkbox'][id*='Quantity']",
+    "span:has-text('0.00')",
+    "label:has-text('0.00')",
+    "a:has-text('0.00')",
+    "span:has-text('0')",
+    "label:has-text('0')",
+]
+
+TP_CALCULATE_BTN = [
+    "input[value='CALCULATE']",
+    "input[value='Calculate']",
+    "button:has-text('CALCULATE')",
+    "button:has-text('Calculate')",
+    "input[id*='btnCalculate']",
+    "input[id*='Calculate']",
+    "input[id*='btnCalc']",
+    "input[id*='Calc']",
+]
+
+TP_SUBMIT_BTN = [
+    "input[value='SUBMIT']",
+    "input[value='Submit']",
+    "button:has-text('SUBMIT')",
+    "button:has-text('Submit')",
+    "input[id*='btnSubmit']",
+    "input[id*='Submit']",
+]
+
+
+
 # ─────────────────────────────────────────────────────────────────
 #  Automation Settings
 # ─────────────────────────────────────────────────────────────────

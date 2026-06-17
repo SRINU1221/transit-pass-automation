@@ -22,6 +22,12 @@ COLUMN_ALIASES: dict[str, str] = {
     "VEHICLENO":    "vehicle_no",
     "VEHICLE NUMBER": "vehicle_no",
 
+    # Vehicle Type
+    "VEHICLE TYPE": "vehicle_type",
+    "VEHICLE_TYPE": "vehicle_type",
+    "VEHICLE.TYPE": "vehicle_type",
+    "VEHICLETYPE":  "vehicle_type",
+
     # Driver Name
     "DRIVER":            "driver",
     "DRIVER NAME":       "driver",
@@ -111,6 +117,7 @@ COLUMN_ALIASES: dict[str, str] = {
 # Internal field names used by the automation engine
 ALL_FIELDS = [
     "vehicle_no",
+    "vehicle_type",
     "driver",
     "license",
     "phone",
@@ -218,7 +225,7 @@ def records_to_dataframe(records: list[dict]) -> pd.DataFrame:
 
     display_cols = [
         "_row", "_side",
-        "vehicle_no", "driver", "license", "phone",
+        "vehicle_no", "vehicle_type", "driver", "license", "phone",
         "aggregator", "dispatch_qty", "stationary_no", "sales_value",
     ]
     df = pd.DataFrame(records)
@@ -228,6 +235,7 @@ def records_to_dataframe(records: list[dict]) -> pd.DataFrame:
         "_row":          "Row",
         "_side":         "Block",
         "vehicle_no":    "Vehicle No",
+        "vehicle_type":  "Vehicle Type",
         "driver":        "Driver",
         "license":       "License",
         "phone":         "Driver Mobile",

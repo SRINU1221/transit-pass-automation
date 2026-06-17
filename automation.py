@@ -1210,14 +1210,30 @@ async def capture_pdf_from_print(
         try:
             await frame.evaluate("""
                 () => {
-                    // Get the transit pass content only
-                    const printDiv = document.getElementById("PrintContent");
+                    // Find the print content container robustly
+                    let printDiv = document.getElementById("PrintContent") || 
+                                   document.getElementById("printContent") || 
+                                   document.querySelector("[id*='PrintContent']");
+                    
+                    if (!printDiv) {
+                        // Fallback: search for the table containing permit/transit info and use its parent
+                        const tables = Array.from(document.querySelectorAll("table"));
+                        const matchTable = tables.find(t => t.textContent && (
+                            t.textContent.toLowerCase().includes("assistant director") ||
+                            t.textContent.toLowerCase().includes("transit pass") ||
+                            t.textContent.toLowerCase().includes("transit form")
+                        ));
+                        if (matchTable) {
+                            printDiv = matchTable.parentElement;
+                        }
+                    }
+
                     if (!printDiv) return;
                     const printContent = printDiv.innerHTML;
 
                     // Replace entire body with only the transit pass content
                     document.body.innerHTML =
-                        '<div id="PrintContent" style="color:black;padding:20px;">'
+                        '<div id="PrintContent" style="color:black;padding:10px;">'
                         + printContent +
                         '</div>';
 
@@ -1228,24 +1244,75 @@ async def capture_pdf_from_print(
                         base = document.createElement("base");
                         document.head.appendChild(base);
                     }
-                    base.href = "https://mines.telangana.gov.in/EPermit/MDL/";
+                    // Dynamically set base href to current folder
+                    let loc = window.location.href;
+                    base.href = loc.substring(0, loc.lastIndexOf('/') + 1);
 
-                    // Force background graphics to print
+                    // Recursively search and adjust any remaining large margins/paddings and hardcoded heights first
+                    const allElements = document.getElementById("PrintContent").getElementsByTagName("*");
+                    for (let el of allElements) {
+                        if (el.style.marginTop && parseInt(el.style.marginTop) > 30) {
+                            el.style.setProperty("margin-top", "10px", "important");
+                        }
+                        if (el.style.paddingTop && parseInt(el.style.paddingTop) > 30) {
+                            el.style.setProperty("padding-top", "10px", "important");
+                        }
+                        // Reset any hardcoded heights to auto to let tables shrink naturally
+                        if (el.style.height && el.style.height.includes("415px")) {
+                            el.style.setProperty("height", "auto", "important");
+                        }
+                    }
+
+                    // Adjust margins/paddings on print tables to fit within a single page
+                    const tables = Array.from(document.querySelectorAll("#PrintContent table"));
+                    const originalTable = tables.find(t => t.textContent && (
+                        t.textContent.includes("Original") ||
+                        t.textContent.includes("ORIGINAL")
+                    ));
+                    const duplicateTable = tables.find(t => t.textContent && (
+                        t.textContent.includes("Duplicate") ||
+                        t.textContent.includes("DUPLICATE")
+                    ));
+
+                    if (originalTable) {
+                        originalTable.style.setProperty("margin-top", "100px", "important");
+                    }
+                    if (duplicateTable) {
+                        duplicateTable.style.setProperty("margin-top", "100px", "important");
+                        const firstTd = duplicateTable.querySelector("td");
+                        if (firstTd) {
+                            firstTd.style.setProperty("padding-top", "100px", "important");
+                        }
+                    }
+
+                    // Force background graphics to print and enforce single-page scaling
                     const style = document.createElement("style");
                     style.textContent =
                         "* { -webkit-print-color-adjust: exact !important;" +
                         "    print-color-adjust: exact !important; }" +
-                        "body { background: white !important; margin: 0; padding: 0; }";
+                        "body { background: white !important; margin: 0; padding: 0; }" +
+                        "#PrintContent { zoom: 0.82 !important; max-height: 100% !important; page-break-inside: avoid !important; }" +
+                        "@page { size: A4 portrait; margin: 0.2in !important; }";
                     document.head.appendChild(style);
 
                     // Re-render barcodes using the portal's local $Barcode library
                     try {
                         if (typeof $Barcode !== "undefined") {
-                            const passNoEl = document.getElementById(
-                                "ContentPlaceHolder1_lbl_OPTP_TransitPassNo"
-                            );
+                            let passNo = "";
+                            const passNoEl = document.getElementById("ContentPlaceHolder1_lbl_OPTP_TransitPassNo") ||
+                                             document.getElementById("ContentPlaceHolder1_lbl_OPTP_TransitFormNo") ||
+                                             document.getElementById("ContentPlaceHolder1_lbl_DPTP_TransitPassNo") ||
+                                             document.getElementById("ContentPlaceHolder1_lbl_DPTP_TransitFormNo");
                             if (passNoEl) {
-                                const passNo = passNoEl.innerText.trim();
+                                passNo = passNoEl.innerText.trim();
+                            } else {
+                                const cells = Array.from(document.querySelectorAll("td, span"));
+                                const match = cells.find(c => c.innerText && /TP\\d+[A-Z]+\\d+/i.test(c.innerText.trim()));
+                                if (match) {
+                                    passNo = match.innerText.trim();
+                                }
+                            }
+                            if (passNo) {
                                 $Barcode("#Topbarcode,#Bottombarcode").JsBarcode(passNo, {
                                     width: 1,
                                     height: 30,
@@ -1320,17 +1387,20 @@ class TransitPassAutomation:
         otp_fn:      Optional[Callable[[], str]] = None,
         progress_fn: Optional[Callable[[int, int], None]] = None,
         headless:    bool = config.HEADLESS,
+        mode:        str = "MDL",
     ):
         self.log        = log_fn
         self.otp_fn     = otp_fn
         self.progress   = progress_fn
         self.headless   = headless
+        self.mode       = mode
         self.playwright = None
         self.browser:   Optional[Browser]        = None
         self.context:   Optional[BrowserContext] = None
         self.page:      Optional[Page]           = None
         self._stop      = False
         self.username   = ""
+        self.dashboard_url = ""
 
     def stop(self):
         self._stop = True
@@ -1539,6 +1609,8 @@ class TransitPassAutomation:
 
             if await self._is_logged_in():
                 self.log("✅ Login successful!")
+                self.dashboard_url = self.page.url
+                self.log(f"   Dashboard URL: {self.dashboard_url}")
                 await dismiss_popup(self.page, self.log)
                 return True
             else:
@@ -1610,18 +1682,18 @@ class TransitPassAutomation:
         current_url = self.page.url
 
         # ── If already on the Approved Permits grid page (with New button), skip navigation ──
-        if "MDLApprovedPermitsNew" in current_url:
+        if "approvedpermit" in current_url.lower() or "approvedpermits" in current_url.lower():
             new_btn = await try_selectors(self.page, config.TP_NEW_BTN, timeout=1000)
             if new_btn:
                 self.log("   ✓ Already on Approved Permits grid page — skipping navigation.")
                 return
             self.log("   🔄 On form page — will navigate via menu to return to grid.")
 
-        # ── Navigate to MDL dashboard if not already there ──
-        if "mdldashboard" in current_url.lower():
-            self.log("   ✓ Already on MDL dashboard page — skipping URL navigation.")
+        # ── Navigate to dashboard if not already there ──
+        if "dashboard" in current_url.lower():
+            self.log("   ✓ Already on dashboard page — skipping URL navigation.")
         else:
-            self.log("   🏠 Returning to MDL dashboard to cleanly reset page state...")
+            self.log("   🏠 Returning to dashboard to cleanly reset page state...")
             home_selectors = [
                 "a:has-text('Home')",
                 "a[href*='Dashboard']",
@@ -1631,15 +1703,17 @@ class TransitPassAutomation:
             clicked_home = await safe_click(self.page, home_selectors, timeout=3000)
             if clicked_home:
                 try:
-                    await self.page.wait_for_url("**/MDLDashboard.aspx", timeout=5000)
+                    await self.page.wait_for_url(lambda u: "dashboard" in u.lower(), timeout=5000)
                     self.log("   ✓ Returned to dashboard via Home click.")
                 except Exception:
                     self.log("   ⚠️ Home click navigation timed out — trying direct navigation.")
                     clicked_home = False
             
             if not clicked_home:
-                home_url = f"{config.BASE_URL}/EPermit/MDL/MDLDashboard.aspx"
-                self.log(f"   🏠 Navigating directly to MDL dashboard: {home_url}")
+                home_url = self.dashboard_url or f"{config.BASE_URL}/EPermit/MDL/MDLDashboard.aspx"
+                if self.mode == "TP" and not self.dashboard_url:
+                    home_url = f"{config.BASE_URL}/EPermit/TP/TPDashboard.aspx"
+                self.log(f"   🏠 Navigating directly to dashboard: {home_url}")
                 try:
                     await self.page.goto(home_url, wait_until="domcontentloaded", timeout=12000)
                     await self.page.wait_for_timeout(300)
@@ -1700,7 +1774,7 @@ class TransitPassAutomation:
         # Wait for the Approved Permits page to load
         try:
             await self.page.wait_for_url(
-                lambda url: "MDLApprovedPermitsNew" in url or "ApprovedPermit" in url,
+                lambda url: "approvedpermit" in url.lower() or "approvedpermits" in url.lower(),
                 timeout=10000,
             )
         except Exception:
@@ -2085,6 +2159,180 @@ class TransitPassAutomation:
         )
         return pdf_ok
 
+    # ── Step 5: TP (Transit Pass) specific flow ───────────────
+
+    async def _process_tp_flow(self, record: dict, label: str, pdf_path: Path) -> bool:
+        self.log("📋 Executing TP (Transit Pass) Flow...")
+        
+        # 1. TYPE OF CONSIGNEE Form
+        consignee_type_sel = await try_selectors(self.page, config.TP_CONSIGNEE_TYPE_DDL, timeout=8000)
+        if not consignee_type_sel:
+            consignee_type_sel = await try_selectors(self.page, config.MDL_TYPE_DDL, timeout=5000)
+            
+        if not consignee_type_sel:
+            raise RuntimeError("❌ Type of Consignee dropdown not found")
+            
+        self.log(f"   Selecting 'MDL' in Type of Consignee [{consignee_type_sel}]…")
+        selected = await safe_select(self.page, [consignee_type_sel], "MDL")
+        if not selected:
+            raise RuntimeError("❌ Could not select 'MDL' in Type of Consignee dropdown")
+            
+        await wait_for_ajax(self.page, timeout=8000)
+        
+        # 2. Dynamic Dropdown Handling
+        dynamic_ddl_sel = await try_selectors(self.page, config.TP_DYNAMIC_DDL, timeout=8000)
+        if not dynamic_ddl_sel:
+            dynamic_ddl_sel = await try_selectors(self.page, config.MDL_ID_DDL, timeout=5000)
+            
+        if not dynamic_ddl_sel:
+            raise RuntimeError("❌ Dynamic dropdown not found")
+            
+        self.log("   Selecting the first valid option in the dynamic dropdown...")
+        ok = False
+        try:
+            opts = await self.page.query_selector_all(f"{dynamic_ddl_sel} option")
+            for opt in opts:
+                txt = (await opt.inner_text()).strip()
+                val = await opt.get_attribute("value") or ""
+                if txt and val and txt.lower() not in ("--select--", "select") and val not in ("", "0"):
+                    await self.page.select_option(dynamic_ddl_sel, value=val)
+                    ok = True
+                    self.log(f"   ✓ Selected option: '{txt}' (value='{val}')")
+                    break
+        except Exception as e:
+            self.log(f"   ⚠️ Error selecting dynamic option: {e}")
+            
+        if not ok:
+            self.log("   ⚠️ Could not select dynamic option — proceeding anyway")
+            
+        await wait_for_ajax(self.page, timeout=8000)
+        
+        # 3. Get Details
+        self.log("   Clicking GET DETAILS...")
+        ok = await safe_click(self.page, config.MDL_GET_DETAILS_BTN, timeout=8000)
+        if not ok:
+            raise RuntimeError("❌ GET DETAILS button not found")
+            
+        await wait_for_ajax(self.page, timeout=8000)
+        await try_selectors(self.page, config.DISPATCH_QTY_INPUT, timeout=8000)
+        
+        # 🧾 CONSIGNEE DETAILS Form
+        self.log("📋 Filling CONSIGNEE DETAILS form…")
+        
+        # Vehicle Type
+        v_type = record.get("vehicle_type", "").strip() or config.VEHICLE_TYPE_VALUE
+        ok = await safe_select(self.page, config.VEHICLE_TYPE_DDL, v_type)
+        self.log(f"   Vehicle Type='{v_type}': {'✓' if ok else '⚠'}")
+        await wait_for_ajax(self.page, timeout=5000)
+        
+        # Vehicle No
+        veh_no = record.get("vehicle_no", "")
+        ok = await safe_fill(self.page, config.VEHICLE_NO_INPUT, veh_no)
+        if not ok:
+            ok = await safe_select(self.page, config.VEHICLE_NO_INPUT, veh_no)
+        self.log(f"   Vehicle No='{veh_no}': {'✓' if ok else '⚠'}")
+        await wait_for_ajax(self.page, timeout=5000)
+        
+        # Dispatch Quantity
+        qty = str(record.get("dispatch_qty", "")).strip()
+        ok = await safe_fill(self.page, config.DISPATCH_QTY_INPUT, qty)
+        self.log(f"   Dispatch Qty='{qty}': {'✓' if ok else '⚠'}")
+        
+        # 👉 Special Handling: Decimal places control
+        self.log("   Clicking decimal places control...")
+        dec_clicked = False
+        try:
+            dec_sel = await try_selectors(self.page, config.TP_DECIMAL_PLACES_CONTROL, timeout=2000)
+            if dec_sel:
+                await self.page.click(dec_sel)
+                dec_clicked = True
+                self.log(f"   ✓ Clicked decimal control: [{dec_sel}]")
+        except Exception:
+            pass
+            
+        if not dec_clicked:
+            try:
+                res = await self.page.evaluate("""
+                    () => {
+                        const qtyInput = document.querySelector("input[id*='Qty'], input[id*='Quantity'], input[id*='DisptchQty']");
+                        if (!qtyInput) return "quantity input not found";
+                        
+                        const candidates = Array.from(document.querySelectorAll('input, button, a, span, label, td'));
+                        for (const el of candidates) {
+                            const txt = (el.innerText || el.textContent || el.value || "").trim();
+                            const id = (el.id || "").toLowerCase();
+                            const name = (el.name || "").toLowerCase();
+                            
+                            if (txt === "0.00" || txt.toLowerCase().includes("decimal") || id.includes("decimal") || name.includes("decimal") || id.includes("decplace") || name.includes("decplace")) {
+                                if (el.tagName === 'INPUT' || el.tagName === 'BUTTON' || el.tagName === 'A' || el.tagName === 'LABEL' || el.tagName === 'SPAN') {
+                                    el.click();
+                                    return "clicked element by text/id/name: " + (el.id || el.tagName);
+                                }
+                            }
+                        }
+                        
+                        const parent = qtyInput.closest('td') || qtyInput.closest('tr') || qtyInput.parentElement;
+                        if (parent) {
+                            const interactive = parent.querySelectorAll('input[type="checkbox"], input[type="radio"], input[type="button"], a, span, label');
+                            for (const el of interactive) {
+                                if (el !== qtyInput) {
+                                    el.click();
+                                    return "clicked interactive element near qty: " + (el.id || el.tagName);
+                                }
+                            }
+                        }
+                        return "no decimal control found";
+                    }
+                """)
+                self.log(f"   ✓ JS decimal search result: {res}")
+            except Exception as js_err:
+                self.log(f"   ⚠️ JS decimal search failed: {js_err}")
+                
+        # Sale Value
+        sales = str(record.get("sales_value", "")).strip()
+        ok = await safe_fill(self.page, config.SALES_VALUE_INPUT, sales)
+        self.log(f"   Sale Value='{sales}': {'✓' if ok else '⚠'}")
+        
+        # Stationary Number
+        stat_no = str(record.get("stationary_no", "")).strip()
+        ok = await safe_fill(self.page, config.STATIONARY_NO_INPUT, stat_no)
+        self.log(f"   Stationary No='{stat_no}': {'✓' if ok else '⚠'}")
+        
+        # CALCULATE button
+        self.log("   Clicking CALCULATE button...")
+        calc_sel = await try_selectors(self.page, config.TP_CALCULATE_BTN, timeout=8000)
+        if calc_sel:
+            await self.page.click(calc_sel)
+        else:
+            self.log("   ⚠️ CALCULATE button not found — trying Enter")
+            await self.page.keyboard.press("Enter")
+            
+        await wait_for_ajax(self.page, timeout=8000)
+        
+        # 🚗 DRIVER DETAILS Form
+        self.log("📋 Filling DRIVER DETAILS form…")
+        
+        # Driver Name
+        ok = await safe_fill(self.page, config.DRIVER_NAME_INPUT, record.get("driver", ""))
+        self.log(f"   Driver Name={record.get('driver')}: {'✓' if ok else '⚠'}")
+        
+        # Driver License
+        ok = await safe_fill(self.page, config.DRIVER_LICENSE_INPUT, record.get("license", ""))
+        self.log(f"   License={record.get('license')}: {'✓' if ok else '⚠'}")
+        
+        # Driver Mobile
+        ok = await safe_fill(self.page, config.DRIVER_MOBILE_INPUT, record.get("phone", ""))
+        self.log(f"   Mobile={record.get('phone')}: {'✓' if ok else '⚠'}")
+        
+        await self.page.wait_for_timeout(200)
+        await take_screenshot(self.page, f"before_submit_{label.replace(' ', '_')}")
+        
+        # Capture PDF from print popup by submitting the form with target='_blank'
+        pdf_ok = await capture_pdf_from_print(
+            self.page, self.context, config.TP_SUBMIT_BTN + config.PRINT_TP_BTN, pdf_path, self.log
+        )
+        return pdf_ok
+
     # ── Process one record ────────────────────────────────────
 
     async def process_record(self, record: dict) -> tuple[str, Optional[str]]:
@@ -2126,17 +2374,20 @@ class TransitPassAutomation:
                 # Click New Transit Pass
                 await self._click_new_tp()
 
-                # Step 1 — MDL
-                await self._step1_mdl()
+                if self.mode == "TP":
+                    pdf_ok = await self._process_tp_flow(record, label, pdf_path)
+                else:
+                    # Step 1 — MDL
+                    await self._step1_mdl()
 
-                # Step 2 — Aggregator
-                await self._step2_aggregator(record.get("aggregator", ""))
+                    # Step 2 — Aggregator
+                    await self._step2_aggregator(record.get("aggregator", ""))
 
-                # Step 3 — Consignee
-                await self._step3_consignee(record)
+                    # Step 3 — Consignee
+                    await self._step3_consignee(record)
 
-                # Step 4 — Vehicle/Driver + Print
-                pdf_ok = await self._step4_vehicle_driver(record, label, pdf_path)
+                    # Step 4 — Vehicle/Driver + Print
+                    pdf_ok = await self._step4_vehicle_driver(record, label, pdf_path)
 
                 if pdf_ok:
                     return "success", str(pdf_path)
@@ -2203,6 +2454,7 @@ async def run_batch(
     progress_fn: Optional[Callable[[int, int], None]] = None,
     headless:    bool = False,
     pdf_folder:  Optional[str] = None,
+    mode:        str = "MDL",
 ) -> List[Dict]:
     """
     Login then generate one Transit Pass per record.
@@ -2219,6 +2471,7 @@ async def run_batch(
         otp_fn=otp_fn,
         progress_fn=progress_fn,
         headless=headless,
+        mode=mode,
     )
     try:
         await engine.start()
