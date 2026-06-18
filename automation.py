@@ -1467,7 +1467,7 @@ class TransitPassAutomation:
         self.context = await self.playwright.chromium.launch_persistent_context(
             user_data_dir=str(user_data_dir),
             headless=self.headless,
-            slow_mo=80,
+            slow_mo=0,           # no artificial delay — pure speed
             args=[
                 "--start-maximized",
                 "--disable-blink-features=AutomationControlled",
@@ -1796,12 +1796,12 @@ class TransitPassAutomation:
             )
 
 
-    # ── Click "New" in Transit Passes column ──────────────────
+    # ── Click "New" in Transit Forms column ──────────────────
 
     async def _click_new_tp(self):
-        self.log("🖱️  Clicking 'New' in Transit Passes column…")
+        self.log("🖱️  Clicking 'New' in Transit Forms column…")
 
-        # Guard: if we got redirected to Login, raise early with a clear message
+        # Guard: if we got redirected to Login, raise early
         current_url = self.page.url
         if "Login.aspx" in current_url or "login.aspx" in current_url:
             raise RuntimeError(
@@ -1809,26 +1809,134 @@ class TransitPassAutomation:
                 "Please restart and log in again."
             )
 
-        clicked = await safe_click(self.page, config.TP_NEW_BTN, timeout=8000)
+        # ── Strategy 1: Smart JS — find the 'New' sub-column under 'Transit Forms' ──
+        # This correctly targets Transit Forms > New and ignores Certificates > Click..!
+        clicked = False
+        try:
+            clicked = await self.page.evaluate("""
+                () => {
+                    const table = document.querySelector('table');
+                    if (!table) return false;
+
+                    // Find all header rows (there may be 2 rows: group header + sub-header)
+                    const headerRows = Array.from(table.querySelectorAll('thead tr, tr:has(th)'));
+                    if (headerRows.length === 0) return false;
+
+                    // Find the column index of 'New' that is under 'Transit Forms'
+                    let transitFormsColStart = -1;
+                    let transitFormsColSpan  = 1;
+                    let newColIndex = -1;
+
+                    // Step A: Find 'Transit Forms' cell in the FIRST header row
+                    const groupRow = headerRows[0];
+                    const groupCells = Array.from(groupRow.querySelectorAll('th, td'));
+                    let colCursor = 0;
+                    for (const cell of groupCells) {
+                        const txt = (cell.textContent || '').trim().toLowerCase();
+                        const span = parseInt(cell.getAttribute('colspan') || '1', 10);
+                        if (txt.includes('transit form')) {
+                            transitFormsColStart = colCursor;
+                            transitFormsColSpan  = span;
+                            break;
+                        }
+                        colCursor += span;
+                    }
+
+                    // Step B: If found, look in the SECOND header row for 'New' within that range
+                    if (transitFormsColStart >= 0 && headerRows.length > 1) {
+                        const subRow = headerRows[1];
+                        const subCells = Array.from(subRow.querySelectorAll('th, td'));
+                        let subCursor = 0;
+                        for (const cell of subCells) {
+                            const txt = (cell.textContent || '').trim().toLowerCase();
+                            const span = parseInt(cell.getAttribute('colspan') || '1', 10);
+                            if (subCursor >= transitFormsColStart &&
+                                subCursor < transitFormsColStart + transitFormsColSpan &&
+                                txt === 'new') {
+                                newColIndex = subCursor;
+                                break;
+                            }
+                            subCursor += span;
+                        }
+                    }
+
+                    // Step C: Click the link in the first data row at newColIndex
+                    if (newColIndex >= 0) {
+                        const dataRows = Array.from(table.querySelectorAll('tbody tr, tr:not(:has(th))'));
+                        for (const row of dataRows) {
+                            const cells = Array.from(row.querySelectorAll('td'));
+                            if (cells.length > newColIndex) {
+                                const link = cells[newColIndex].querySelector('a, input[type="button"], input[type="submit"]');
+                                if (link) {
+                                    link.click();
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+
+                    // Step D: Fallback — find first 'Click..!' link NOT in Certificates column
+                    // by checking if the header above it is 'New' (not 'Certificates')
+                    const allLinks = Array.from(document.querySelectorAll('a, input[type="button"]'));
+                    for (const link of allLinks) {
+                        const txt = (link.textContent || link.value || '').trim();
+                        if (txt === 'Click..!' || txt === 'Click!') {
+                            link.click();
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            """)
+        except Exception as js_err:
+            self.log(f"   ⚠️ JS column-aware click failed: {js_err}")
+
+        # ── Strategy 2: Playwright selector fallback ──────────────────────────────
+        if not clicked:
+            self.log("   Falling back to Playwright selector for 'Click..!' button…")
+            clicked = await safe_click(self.page, config.TP_NEW_BTN, timeout=8000)
+
         if not clicked:
             self.log("⚠️  'New' button not found — logging table elements…")
             fields = await discover_fields(self.page)
             btns = [f for f in fields if f['tag'] in ('A', 'INPUT', 'BUTTON')][:20]
             self.log(f"   Buttons/Links: {btns}")
-            raise RuntimeError("'New' Transit Pass button not found")
-        # Smart wait — poll for MDL Type dropdown instead of blind 2s sleep
-        await try_selectors(self.page, config.MDL_TYPE_DDL, timeout=3000)
-        self.log(f"📍 Transit Pass page: {self.page.url}")
+            raise RuntimeError("'New' Transit Forms button not found — check table column structure")
+
+        self.log("   ✓ Clicked 'Click..!' in Transit Forms → New column")
+
+        # Wait for the Type of Consignee form to appear
+        consignee_ddl_appeared = await try_selectors(
+            self.page, config.TP_CONSIGNEE_TYPE_DDL + config.MDL_TYPE_DDL, timeout=8000
+        )
+        if not consignee_ddl_appeared:
+            await self.page.wait_for_timeout(500)
+        self.log(f"📍 Transit Pass form loaded: {self.page.url}")
 
     # ── Step 1: MDL Selection ─────────────────────────────────
 
-    async def _step1_mdl(self):
-        self.log("📋 Step 1 — MDL Selection…")
+    async def _step1_mdl(self, record: dict):
+        """
+        Step 1: TYPE OF CONSIGNEE form (MDL mode)
+        Form layout (from portal screenshot):
+          [Type Of MDL: MDL ▼]  [MDL: M302024216-RANGAREDDY ▼]  [GET DETAILS]
 
-        # ── 1b: Find the Type-of-MDL dropdown ────────────────
+        Reads mdl_id from Excel (e.g. 'M302024216') and matches it
+        against dynamic options like 'M302024216-RANGAREDDY'.
+        """
+        self.log("📋 Step 1 — TYPE OF CONSIGNEE (MDL mode)…")
+
+        # MDL ID from Excel record
+        mdl_id_target = str(record.get("mdl_id", "")).strip()
+        if mdl_id_target:
+            self.log(f"   Target MDL ID from Excel: '{mdl_id_target}'")
+        else:
+            self.log("   ℹ️ No MDL ID in Excel — will auto-select first option")
+
+        # ── 1a: Find the 'Type Of MDL' dropdown ──────────────────────────────
         type_ddl_sel = await try_selectors(self.page, config.MDL_TYPE_DDL, timeout=8000)
         if not type_ddl_sel:
-            self.log("   ⚠️  'Type of MDL' dropdown not found — scanning page…")
+            self.log("   ⚠️  'Type Of MDL' dropdown not found — scanning page…")
             fields = await discover_fields(self.page)
             all_ddls = [f for f in fields if f['tag'] == 'SELECT']
             self.log(f"   Dropdowns on page: {[d['id'] for d in all_ddls]}")
@@ -1836,26 +1944,12 @@ class TransitPassAutomation:
                 type_ddl_sel = f"select#{all_ddls[0]['id']}" if all_ddls[0]['id'] else "select"
                 self.log(f"   Auto-selected first dropdown: [{type_ddl_sel}]")
             else:
-                self.log("   ❌ No SELECT elements found on page at all!")
+                self.log("   ❌ No SELECT elements found — aborting Step 1")
                 await take_screenshot(self.page, "step1_no_dropdowns")
                 return
 
-        # ── 1c: Select "MDL" and wait for dynamic form to load ─
-        self.log(f"   Selecting '{config.MDL_TYPE_VALUE}' in [{type_ddl_sel}]…")
-
-        # Inject a MutationObserver BEFORE selecting, to detect DOM changes
-        await self.page.evaluate("""
-            () => {
-                window.__newElemsAdded = 0;
-                const obs = new MutationObserver(muts => {
-                    muts.forEach(m => { window.__newElemsAdded += m.addedNodes.length; });
-                });
-                obs.observe(document.body, { childList: true, subtree: true });
-                window.__domObserver = obs;
-            }
-        """)
-
-        # Try selecting by value "MDL", then by label "MDL"
+        # ── 1b: Select 'MDL' in the Type Of MDL dropdown ─────────────────────
+        self.log(f"   Selecting 'MDL' in [{type_ddl_sel}]…")
         selected = False
         for method, kwarg in [("value", {"value": "MDL"}), ("label", {"label": "MDL"})]:
             try:
@@ -1867,8 +1961,6 @@ class TransitPassAutomation:
                 continue
 
         if not selected:
-            # Partial-match fallback: iterate <option> elements
-            self.log("   Trying partial-match fallback for MDL type…")
             try:
                 opts = await self.page.query_selector_all(f"{type_ddl_sel} option")
                 for opt in opts:
@@ -1877,113 +1969,96 @@ class TransitPassAutomation:
                     if "mdl" in txt.lower() and val:
                         await self.page.select_option(type_ddl_sel, value=val)
                         selected = True
-                        self.log(f"   ✓ Selected option '{txt}' (value='{val}') by partial match.")
+                        self.log(f"   ✓ Selected '{txt}' by partial match.")
                         break
             except Exception as pe:
-                self.log(f"   Partial-match failed: {pe}")
+                self.log(f"   Partial-match error: {pe}")
 
         if not selected:
-            self.log("   ❌ Could not select MDL type — aborting step 1.")
+            self.log("   ❌ Could not select MDL type — aborting Step 1.")
             await take_screenshot(self.page, "step1_mdl_type_fail")
             return
 
-        # ── 1d: Wait for the DYNAMIC FORM to load ─────────────
-        # The page uses AJAX / ASP.NET UpdatePanel — wait for network + DOM changes
-        self.log("   ⏳ Waiting for dynamic form to appear after MDL selection…")
-
-        # Strategy A: Wait for ASP.NET AJAX PostBack to complete
-        await wait_for_ajax(self.page, timeout=8000)
-
-        # Check how many DOM nodes were added
-        new_nodes = await self.page.evaluate("() => { try { window.__domObserver.disconnect(); } catch(e){} return window.__newElemsAdded || 0; }")
-        self.log(f"   DOM nodes added after selection: {new_nodes}")
-
-        # Strategy B: poll for the MDL ID dropdown up to 6 × 400 ms = ~2.4 s
-        mdl_id_sel = None
-        for attempt in range(6):
-            mdl_id_sel = await try_selectors(self.page, config.MDL_ID_DDL, timeout=600)
-            if mdl_id_sel:
-                self.log(f"   ✓ MDL ID dropdown appeared [{mdl_id_sel}] after {attempt+1} poll(s).")
-                break
-            await self.page.wait_for_timeout(400)
+        # ── 1c: Wait for dynamic MDL dropdown to appear (AJAX postback) ──────
+        await wait_for_ajax(self.page, timeout=5000)
+        mdl_id_sel = await try_selectors(self.page, config.MDL_ID_DDL, timeout=5000)
 
         if not mdl_id_sel:
-            # Log ALL selects visible now for diagnosis
-            self.log("   ⚠️  MDL ID dropdown not found — scanning all dropdowns now visible…")
+            self.log("   ⚠️  Dynamic MDL dropdown not found — scanning page…")
             fields2 = await discover_fields(self.page)
             ddls2 = [f for f in fields2 if f['tag'] == 'SELECT']
-            self.log(f"   SELECT elements now: {[(d['id'], d['name'], d['value']) for d in ddls2]}")
+            self.log(f"   SELECT elements: {[(d['id'], d['name'], d['value']) for d in ddls2]}")
             await take_screenshot(self.page, "step1_mdl_id_missing")
 
-        # ── 1e: Select MDL ID from the dynamic dropdown ───────
-        # Strategy 1 — exact username match
-        # Strategy 2 — partial match (e.g. "M302024216-RANGAREDDY" contains "M302024216")
-        # Strategy 3 — auto-select the FIRST non-Select option (fallback)
+        # ── 1d: Select from dynamic MDL dropdown by Excel MDL ID ─────────────
+        # Option format from portal: 'M302024216-RANGAREDDY'
         ok = False
-        mdl_id_sels = config.MDL_ID_DDL
 
-        # Strategy 1: exact match on username
-        ok = await safe_select(self.page, mdl_id_sels, self.username)
-        if ok:
-            self.log(f"   ✓ MDL ID selected by exact username match: '{self.username}'")
+        if mdl_id_target and mdl_id_sel:
+            self.log(f"   Matching '{mdl_id_target}' in [{mdl_id_sel}]…")
+            try:
+                opts = await self.page.query_selector_all(f"{mdl_id_sel} option")
+                for opt in opts:
+                    txt = (await opt.inner_text()).strip()   # e.g. 'M302024216-RANGAREDDY'
+                    val = (await opt.get_attribute("value") or "").strip()
+                    if not txt or not val or val in ("", "0") or txt.lower() in ("--select--", "select"):
+                        continue
+                    # Match: starts with ID or ID appears anywhere in text/value
+                    if (txt.startswith(mdl_id_target) or
+                            val.startswith(mdl_id_target) or
+                            mdl_id_target.lower() in txt.lower() or
+                            mdl_id_target.lower() in val.lower()):
+                        await self.page.select_option(mdl_id_sel, value=val)
+                        ok = True
+                        self.log(f"   ✓ MDL ID matched: '{txt}' (value='{val}')")
+                        break
+                if not ok:
+                    self.log(f"   ⚠️ No option matched '{mdl_id_target}' — will auto-select first")
+            except Exception as e:
+                self.log(f"   MDL ID match error: {e}")
 
-        # Strategy 2: partial match — username is prefix of option text
+        # Fallback: auto-select first valid option
         if not ok and mdl_id_sel:
-            self.log(f"   Trying partial-match for MDL ID (username = '{self.username}')…")
+            if not mdl_id_target:
+                self.log("   Auto-selecting first available MDL option…")
             try:
                 opts = await self.page.query_selector_all(f"{mdl_id_sel} option")
                 for opt in opts:
                     txt = (await opt.inner_text()).strip()
-                    val = await opt.get_attribute("value") or ""
-                    uname_prefix = self.username[:8]
-                    if (self.username.lower() in txt.lower() or
-                            self.username.lower() in val.lower() or
-                            uname_prefix.lower() in txt.lower()):
-                        if val and val.lower() not in ("--select--", "", "0"):
-                            await self.page.select_option(mdl_id_sel, value=val)
-                            ok = True
-                            self.log(f"   ✓ MDL ID selected by partial match: '{txt}' (value='{val}')")
-                            break
-            except Exception as e2:
-                self.log(f"   Partial-match error: {e2}")
-
-        # Strategy 3: auto-select first non-Select option
-        if not ok and mdl_id_sel:
-            self.log("   Auto-selecting first available MDL ID option…")
-            try:
-                opts = await self.page.query_selector_all(f"{mdl_id_sel} option")
-                for opt in opts:
-                    txt = (await opt.inner_text()).strip()
-                    val = await opt.get_attribute("value") or ""
+                    val = (await opt.get_attribute("value") or "").strip()
                     if txt and val and txt.lower() not in ("--select--", "select") and val not in ("", "0"):
                         await self.page.select_option(mdl_id_sel, value=val)
                         ok = True
-                        self.log(f"   ✓ MDL ID auto-selected first option: '{txt}' (value='{val}')")
+                        self.log(f"   ✓ Auto-selected first option: '{txt}' (value='{val}')")
                         break
                 if not ok:
-                    self.log("   ⚠️  All options in MDL ID dropdown appear to be --Select-- placeholders.")
+                    self.log("   ⚠️ No valid options in MDL dropdown.")
             except Exception as e3:
                 self.log(f"   Auto-select error: {e3}")
 
         if not ok:
-            self.log(f"   ❌ Could not select MDL ID — will try GET DETAILS anyway.")
+            self.log("   ❌ Could not select MDL ID — will try GET DETAILS anyway.")
             await take_screenshot(self.page, "step1_mdl_id_select_fail")
 
-        await wait_for_ajax(self.page, timeout=8000)
+        # Wait for AJAX after dynamic MDL selection
+        await wait_for_ajax(self.page, timeout=4000)
 
-        # ── 1f: Click GET DETAILS ──────────────────────────────
-        ok = await safe_click(self.page, config.MDL_GET_DETAILS_BTN, timeout=8000)
-        self.log(f"   GET DETAILS button: {'✓ clicked' if ok else '⚠ not found'}")
+        # ── 1e: Click GET DETAILS ─────────────────────────────────────────────
+        ok = await safe_click(self.page, config.MDL_GET_DETAILS_BTN, timeout=5000)
+        self.log(f"   GET DETAILS: {'✓ clicked' if ok else '⚠ not found'}")
         if not ok:
             fields3 = await discover_fields(self.page)
             btns = [f for f in fields3 if f['tag'] in ('INPUT', 'BUTTON')]
             self.log(f"   Buttons visible: {[(b['id'], b.get('value') or b.get('text','')) for b in btns[:12]]}")
             await take_screenshot(self.page, "step1_get_details_fail")
 
-        # Wait for GET DETAILS response
-        await wait_for_ajax(self.page, timeout=8000)
-        agg_ready = await try_selectors(self.page, config.AGGREGATOR_DDL, timeout=4000)
+        # Wait for Aggregator dropdown (confirms GET DETAILS response loaded)
+        agg_ready = await try_selectors(self.page, config.AGGREGATOR_DDL, timeout=8000)
+        if not agg_ready:
+            await wait_for_ajax(self.page, timeout=4000)
         self.log("   ✅ Step 1 complete.")
+
+
 
 
     # ── Step 2: PERMIT INFO — Aggregator ────────────────────────────────
@@ -1991,20 +2066,16 @@ class TransitPassAutomation:
     async def _step2_aggregator(self, aggregator: str):
         self.log(f"📋 Step 2 — Aggregator selection…")
 
-        # ── 2a: Wait for the Aggregator dropdown to appear (replaces slow networkidle+1500ms)
-        agg_sel = None
-        for attempt in range(12):  # up to ~6 s
-            agg_sel = await try_selectors(self.page, config.AGGREGATOR_DDL, timeout=500)
-            if agg_sel:
-                break
-            await self.page.wait_for_timeout(500)
+        # ── 2a: Find Aggregator dropdown ─────────────────────────────────────
+        # Step 1 already confirmed this dropdown is present — 500ms probe is enough.
+        agg_sel = await try_selectors(self.page, config.AGGREGATOR_DDL, timeout=500)
 
         if not agg_sel:
             self.log("   ⚠️  Aggregators dropdown not found — trying auto-detect…")
-            # Last-resort: scan all SELECTs, skip MDL-type ones
             fields = await discover_fields(self.page)
             non_mdl = [d for d in fields if d['tag'] == 'SELECT'
-                       and 'TypeOfMDL' not in d['id'] and 'AllMDLs' not in d['id']]
+                       and 'TypeOfMDL' not in d['id'] and 'AllMDLs' not in d['id']
+                       and 'ConsigneeType' not in d['id']]
             if non_mdl:
                 agg_sel = f"select#{non_mdl[-1]['id']}" if non_mdl[-1]['id'] else None
                 self.log(f"   Auto-detected aggregator dropdown: [{agg_sel}]")
@@ -2012,13 +2083,15 @@ class TransitPassAutomation:
                 self.log("   ❌ Cannot find Aggregators dropdown — skipping Step 2.")
                 return
 
+        self.log(f"   Aggregator dropdown found: [{agg_sel}]")
         if not aggregator:
-            self.log("   ⚠️  No aggregator in Excel — auto-selecting first option.")
+            self.log("   ℹ️  No aggregator in Excel — auto-selecting first option.")
 
-        # ── 2b: Select aggregator — exact → partial → first-available
+        # ── 2b: Select aggregator — exact value → exact label → partial → first ──
         ok = False
 
         if aggregator:
+            # Try exact value and label first (fastest)
             for method, kwarg in [("value", {"value": aggregator}), ("label", {"label": aggregator})]:
                 try:
                     await self.page.select_option(agg_sel, **kwarg)
@@ -2028,13 +2101,14 @@ class TransitPassAutomation:
                 except Exception:
                     continue
 
+            # Partial match if exact fails
             if not ok:
                 try:
                     opts = await self.page.query_selector_all(f"{agg_sel} option")
                     for opt in opts:
                         txt = (await opt.inner_text()).strip()
-                        val = await opt.get_attribute("value") or ""
-                        if val.lower() in ("", "0") or txt.lower() in ("--select--", "select"):
+                        val = (await opt.get_attribute("value") or "").strip()
+                        if not val or val in ("", "0") or txt.lower() in ("--select--", "select"):
                             continue
                         if (aggregator.lower() in txt.lower() or
                                 txt.lower() in aggregator.lower() or
@@ -2046,12 +2120,13 @@ class TransitPassAutomation:
                 except Exception as e:
                     self.log(f"   Partial match error: {e}")
 
+        # Auto-select first valid option if no match
         if not ok:
             try:
                 opts = await self.page.query_selector_all(f"{agg_sel} option")
                 for opt in opts:
                     txt = (await opt.inner_text()).strip()
-                    val = await opt.get_attribute("value") or ""
+                    val = (await opt.get_attribute("value") or "").strip()
                     if txt and val and txt.lower() not in ("--select--", "select") and val not in ("", "0"):
                         await self.page.select_option(agg_sel, value=val)
                         ok = True
@@ -2065,19 +2140,18 @@ class TransitPassAutomation:
         if not ok:
             self.log("   ❌ Aggregator selection failed.")
 
-        # ── 2c: Wait for CONSIGNEE INFO after aggregator postback
-        await wait_for_ajax(self.page, timeout=8000)
-        consignee_appeared = await try_selectors(
-            self.page, config.DISPATCH_QTY_INPUT, timeout=6000
-        )
+        # Step 2 done — return immediately.
+        # Step 3 will wait for the Consignee Info form to appear.
         self.log("   ✅ Step 2 complete.")
+
+
 
     # ── Step 3: CONSIGNEE INFO ────────────────────────────────
 
     async def _step3_consignee(self, record: dict):
         self.log("📋 Step 3 — CONSIGNEE INFO form…")
 
-        # ── 3a: Fields already waited on in Step 2 — just confirm qty field is ready
+        # Wait for Consignee Info form to appear (portal AJAX after aggregator selection)
         qty_sel = await try_selectors(self.page, config.DISPATCH_QTY_INPUT, timeout=5000)
         if not qty_sel:
             # Brief wait if somehow not ready yet
@@ -2163,171 +2237,182 @@ class TransitPassAutomation:
 
     async def _process_tp_flow(self, record: dict, label: str, pdf_path: Path) -> bool:
         self.log("📋 Executing TP (Transit Pass) Flow...")
-        
-        # 1. TYPE OF CONSIGNEE Form
+
+        # ── 1. TYPE OF CONSIGNEE: select "MDL" ───────────────────────────────
         consignee_type_sel = await try_selectors(self.page, config.TP_CONSIGNEE_TYPE_DDL, timeout=8000)
         if not consignee_type_sel:
-            consignee_type_sel = await try_selectors(self.page, config.MDL_TYPE_DDL, timeout=5000)
-            
+            consignee_type_sel = await try_selectors(self.page, config.MDL_TYPE_DDL, timeout=3000)
         if not consignee_type_sel:
             raise RuntimeError("❌ Type of Consignee dropdown not found")
-            
+
         self.log(f"   Selecting 'MDL' in Type of Consignee [{consignee_type_sel}]…")
         selected = await safe_select(self.page, [consignee_type_sel], "MDL")
         if not selected:
             raise RuntimeError("❌ Could not select 'MDL' in Type of Consignee dropdown")
-            
-        await wait_for_ajax(self.page, timeout=8000)
-        
-        # 2. Dynamic Dropdown Handling
-        dynamic_ddl_sel = await try_selectors(self.page, config.TP_DYNAMIC_DDL, timeout=8000)
+
+        # Wait for dynamic MDL dropdown to appear (AJAX postback)
+        await wait_for_ajax(self.page, timeout=5000)
+
+        # ── 2. DYNAMIC MDL DROPDOWN: match by MDL ID from Excel ───────────────
+        dynamic_ddl_sel = await try_selectors(self.page, config.TP_DYNAMIC_DDL, timeout=6000)
         if not dynamic_ddl_sel:
-            dynamic_ddl_sel = await try_selectors(self.page, config.MDL_ID_DDL, timeout=5000)
-            
+            dynamic_ddl_sel = await try_selectors(self.page, config.MDL_ID_DDL, timeout=3000)
         if not dynamic_ddl_sel:
-            raise RuntimeError("❌ Dynamic dropdown not found")
-            
-        self.log("   Selecting the first valid option in the dynamic dropdown...")
+            raise RuntimeError("❌ Dynamic MDL dropdown not found after selecting MDL type")
+
+        # The MDL ID from Excel (e.g. "M222099154") — must match the option text prefix
+        mdl_id_target = str(record.get("mdl_id", "")).strip()
         ok = False
-        try:
-            opts = await self.page.query_selector_all(f"{dynamic_ddl_sel} option")
-            for opt in opts:
-                txt = (await opt.inner_text()).strip()
-                val = await opt.get_attribute("value") or ""
-                if txt and val and txt.lower() not in ("--select--", "select") and val not in ("", "0"):
-                    await self.page.select_option(dynamic_ddl_sel, value=val)
-                    ok = True
-                    self.log(f"   ✓ Selected option: '{txt}' (value='{val}')")
-                    break
-        except Exception as e:
-            self.log(f"   ⚠️ Error selecting dynamic option: {e}")
-            
+
+        if mdl_id_target:
+            self.log(f"   Matching MDL ID '{mdl_id_target}' in dynamic dropdown [{dynamic_ddl_sel}]…")
+            try:
+                opts = await self.page.query_selector_all(f"{dynamic_ddl_sel} option")
+                for opt in opts:
+                    txt = (await opt.inner_text()).strip()         # e.g. "M222099154 - P Veera Reddy"
+                    val = (await opt.get_attribute("value") or "").strip()
+                    if not txt or not val or val in ("", "0") or txt.lower() in ("--select--", "select"):
+                        continue
+                    # Match if the option text OR value STARTS WITH the MDL ID provided
+                    if (txt.startswith(mdl_id_target) or
+                            val.startswith(mdl_id_target) or
+                            mdl_id_target.lower() in txt.lower() or
+                            mdl_id_target.lower() in val.lower()):
+                        await self.page.select_option(dynamic_ddl_sel, value=val)
+                        ok = True
+                        self.log(f"   ✓ MDL ID matched: '{txt}' (value='{val}')")
+                        break
+            except Exception as e:
+                self.log(f"   ⚠️ MDL ID match error: {e}")
+
+        # Fallback: select first valid option if no match found (or no ID provided)
         if not ok:
-            self.log("   ⚠️ Could not select dynamic option — proceeding anyway")
-            
-        await wait_for_ajax(self.page, timeout=8000)
-        
-        # 3. Get Details
-        self.log("   Clicking GET DETAILS...")
-        ok = await safe_click(self.page, config.MDL_GET_DETAILS_BTN, timeout=8000)
+            if mdl_id_target:
+                self.log(f"   ⚠️ No option matched '{mdl_id_target}' — auto-selecting first valid option")
+            else:
+                self.log("   ℹ️ No MDL ID in record — auto-selecting first valid option")
+            try:
+                opts = await self.page.query_selector_all(f"{dynamic_ddl_sel} option")
+                for opt in opts:
+                    txt = (await opt.inner_text()).strip()
+                    val = (await opt.get_attribute("value") or "").strip()
+                    if txt and val and txt.lower() not in ("--select--", "select") and val not in ("", "0"):
+                        await self.page.select_option(dynamic_ddl_sel, value=val)
+                        ok = True
+                        self.log(f"   ✓ First option auto-selected: '{txt}' (value='{val}')")
+                        break
+            except Exception as e:
+                self.log(f"   ⚠️ Auto-select error: {e}")
+
+        if not ok:
+            self.log("   ⚠️ Could not select any MDL option — proceeding anyway")
+
+        # Wait for AJAX after dynamic selection
+        await wait_for_ajax(self.page, timeout=4000)
+
+        # ── 3. GET DETAILS ────────────────────────────────────────────────────
+        self.log("   Clicking GET DETAILS…")
+        ok = await safe_click(self.page, config.MDL_GET_DETAILS_BTN, timeout=5000)
         if not ok:
             raise RuntimeError("❌ GET DETAILS button not found")
-            
-        await wait_for_ajax(self.page, timeout=8000)
-        await try_selectors(self.page, config.DISPATCH_QTY_INPUT, timeout=8000)
-        
-        # 🧾 CONSIGNEE DETAILS Form
+
+        # Wait for Dispatch Qty field to appear (signals consignee form is loaded)
+        qty_appeared = await try_selectors(self.page, config.DISPATCH_QTY_INPUT, timeout=8000)
+        if not qty_appeared:
+            await wait_for_ajax(self.page, timeout=5000)
+
+        # ── 4. CONSIGNEE DETAILS form ─────────────────────────────────────────
         self.log("📋 Filling CONSIGNEE DETAILS form…")
-        
+
         # Vehicle Type
         v_type = record.get("vehicle_type", "").strip() or config.VEHICLE_TYPE_VALUE
         ok = await safe_select(self.page, config.VEHICLE_TYPE_DDL, v_type)
         self.log(f"   Vehicle Type='{v_type}': {'✓' if ok else '⚠'}")
-        await wait_for_ajax(self.page, timeout=5000)
-        
+        await wait_for_ajax(self.page, timeout=3000)
+
         # Vehicle No
         veh_no = record.get("vehicle_no", "")
         ok = await safe_fill(self.page, config.VEHICLE_NO_INPUT, veh_no)
         if not ok:
             ok = await safe_select(self.page, config.VEHICLE_NO_INPUT, veh_no)
         self.log(f"   Vehicle No='{veh_no}': {'✓' if ok else '⚠'}")
-        await wait_for_ajax(self.page, timeout=5000)
-        
+        await wait_for_ajax(self.page, timeout=3000)
+
         # Dispatch Quantity
         qty = str(record.get("dispatch_qty", "")).strip()
         ok = await safe_fill(self.page, config.DISPATCH_QTY_INPUT, qty)
         self.log(f"   Dispatch Qty='{qty}': {'✓' if ok else '⚠'}")
-        
-        # 👉 Special Handling: Decimal places control
-        self.log("   Clicking decimal places control...")
+
+        # Decimal places control (click adjacent control to confirm qty)
         dec_clicked = False
         try:
-            dec_sel = await try_selectors(self.page, config.TP_DECIMAL_PLACES_CONTROL, timeout=2000)
+            dec_sel = await try_selectors(self.page, config.TP_DECIMAL_PLACES_CONTROL, timeout=1500)
             if dec_sel:
                 await self.page.click(dec_sel)
                 dec_clicked = True
-                self.log(f"   ✓ Clicked decimal control: [{dec_sel}]")
+                self.log(f"   ✓ Decimal control clicked: [{dec_sel}]")
         except Exception:
             pass
-            
+
         if not dec_clicked:
             try:
                 res = await self.page.evaluate("""
                     () => {
                         const qtyInput = document.querySelector("input[id*='Qty'], input[id*='Quantity'], input[id*='DisptchQty']");
                         if (!qtyInput) return "quantity input not found";
-                        
                         const candidates = Array.from(document.querySelectorAll('input, button, a, span, label, td'));
                         for (const el of candidates) {
                             const txt = (el.innerText || el.textContent || el.value || "").trim();
                             const id = (el.id || "").toLowerCase();
                             const name = (el.name || "").toLowerCase();
-                            
-                            if (txt === "0.00" || txt.toLowerCase().includes("decimal") || id.includes("decimal") || name.includes("decimal") || id.includes("decplace") || name.includes("decplace")) {
-                                if (el.tagName === 'INPUT' || el.tagName === 'BUTTON' || el.tagName === 'A' || el.tagName === 'LABEL' || el.tagName === 'SPAN') {
-                                    el.click();
-                                    return "clicked element by text/id/name: " + (el.id || el.tagName);
-                                }
-                            }
-                        }
-                        
-                        const parent = qtyInput.closest('td') || qtyInput.closest('tr') || qtyInput.parentElement;
-                        if (parent) {
-                            const interactive = parent.querySelectorAll('input[type="checkbox"], input[type="radio"], input[type="button"], a, span, label');
-                            for (const el of interactive) {
-                                if (el !== qtyInput) {
-                                    el.click();
-                                    return "clicked interactive element near qty: " + (el.id || el.tagName);
+                            if (txt === "0.00" || id.includes("decimal") || name.includes("decimal") || id.includes("decplace")) {
+                                if (['INPUT','BUTTON','A','LABEL','SPAN'].includes(el.tagName)) {
+                                    el.click(); return "clicked: " + (el.id || el.tagName);
                                 }
                             }
                         }
                         return "no decimal control found";
                     }
                 """)
-                self.log(f"   ✓ JS decimal search result: {res}")
+                self.log(f"   ✓ JS decimal result: {res}")
             except Exception as js_err:
-                self.log(f"   ⚠️ JS decimal search failed: {js_err}")
-                
+                self.log(f"   ⚠️ JS decimal failed: {js_err}")
+
         # Sale Value
         sales = str(record.get("sales_value", "")).strip()
         ok = await safe_fill(self.page, config.SALES_VALUE_INPUT, sales)
         self.log(f"   Sale Value='{sales}': {'✓' if ok else '⚠'}")
-        
+
         # Stationary Number
         stat_no = str(record.get("stationary_no", "")).strip()
         ok = await safe_fill(self.page, config.STATIONARY_NO_INPUT, stat_no)
         self.log(f"   Stationary No='{stat_no}': {'✓' if ok else '⚠'}")
-        
-        # CALCULATE button
-        self.log("   Clicking CALCULATE button...")
-        calc_sel = await try_selectors(self.page, config.TP_CALCULATE_BTN, timeout=8000)
+
+        # ── 5. CALCULATE ──────────────────────────────────────────────────────
+        self.log("   Clicking CALCULATE…")
+        calc_sel = await try_selectors(self.page, config.TP_CALCULATE_BTN, timeout=5000)
         if calc_sel:
             await self.page.click(calc_sel)
         else:
-            self.log("   ⚠️ CALCULATE button not found — trying Enter")
+            self.log("   ⚠️ CALCULATE button not found — pressing Enter")
             await self.page.keyboard.press("Enter")
-            
-        await wait_for_ajax(self.page, timeout=8000)
-        
-        # 🚗 DRIVER DETAILS Form
+        await wait_for_ajax(self.page, timeout=5000)
+
+        # ── 6. DRIVER DETAILS form ────────────────────────────────────────────
         self.log("📋 Filling DRIVER DETAILS form…")
-        
-        # Driver Name
+
         ok = await safe_fill(self.page, config.DRIVER_NAME_INPUT, record.get("driver", ""))
         self.log(f"   Driver Name={record.get('driver')}: {'✓' if ok else '⚠'}")
-        
-        # Driver License
+
         ok = await safe_fill(self.page, config.DRIVER_LICENSE_INPUT, record.get("license", ""))
         self.log(f"   License={record.get('license')}: {'✓' if ok else '⚠'}")
-        
-        # Driver Mobile
+
         ok = await safe_fill(self.page, config.DRIVER_MOBILE_INPUT, record.get("phone", ""))
         self.log(f"   Mobile={record.get('phone')}: {'✓' if ok else '⚠'}")
-        
-        await self.page.wait_for_timeout(200)
+
         await take_screenshot(self.page, f"before_submit_{label.replace(' ', '_')}")
-        
-        # Capture PDF from print popup by submitting the form with target='_blank'
+
+        # ── 7. Capture PDF ────────────────────────────────────────────────────
         pdf_ok = await capture_pdf_from_print(
             self.page, self.context, config.TP_SUBMIT_BTN + config.PRINT_TP_BTN, pdf_path, self.log
         )
@@ -2377,8 +2462,8 @@ class TransitPassAutomation:
                 if self.mode == "TP":
                     pdf_ok = await self._process_tp_flow(record, label, pdf_path)
                 else:
-                    # Step 1 — MDL
-                    await self._step1_mdl()
+                    # Step 1 — MDL (pass record so mdl_id from Excel is used)
+                    await self._step1_mdl(record)
 
                     # Step 2 — Aggregator
                     await self._step2_aggregator(record.get("aggregator", ""))

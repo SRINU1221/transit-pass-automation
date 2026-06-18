@@ -138,7 +138,12 @@ MDL_ID_DDL = [
 # MDL ID value is set to the logged-in username at runtime
 
 MDL_GET_DETAILS_BTN = [
-    # Exact button text variants (portal uses all-caps)
+    # ✅ CONFIRMED from screenshot: button text is "GET DETAIL" (no S)
+    "input[value='GET DETAIL']",
+    "input[value='Get Detail']",
+    "button:has-text('GET DETAIL')",
+    "a:has-text('GET DETAIL')",
+    # Also try with S (fallback)
     "input[value='GET DETAILS']",
     "input[value='Get Details']",
     "input[value='GetDetails']",
@@ -149,12 +154,16 @@ MDL_GET_DETAILS_BTN = [
     "a:has-text('Get Details')",
     # ID-based selectors
     "#btnGetDetails",
+    "#btnGetDetail",
     "input[id*='GetDetails']",
+    "input[id*='GetDetail']",
     "input[id*='btnGet']",
     "input[id$='btnGetDetails']",
+    "input[id$='btnGetDetail']",
     "input[id$='btnGet']",
     # name-based
     "input[name*='GetDetails']",
+    "input[name*='GetDetail']",
     "input[name*='btnGet']",
 ]
 
@@ -356,26 +365,41 @@ POPUP_PRINT_BTN = [
 
 
 # ─────────────────────────────────────────────────────────────
-#  Step 1b — TP (Transit Pass) specific selectors
+#  Step 1b — TP (Transit Pass) — TYPE OF CONSIGNEE form
+#  From screenshot: one row with 2 dropdowns + GET DETAIL button
+#    [Type of Consignee: MDL ▼]  [MDL: Select ▼]  [GET DETAIL]
+#  First dropdown = Type of Consignee (select MDL here)
+#  Second dropdown = Dynamic MDL list (select by MDL ID)
 # ─────────────────────────────────────────────────────────────
 TP_CONSIGNEE_TYPE_DDL = [
+    # Most specific first
     "select[id*='ddlConsigneeType']",
     "select[id*='ConsigneeType']",
     "select[id*='ddlMDLType']",
     "select[id*='MDLType']",
     "select[id*='TypeMDL']",
     "select[id*='ddlType']",
+    # Generic first SELECT on the page (Type of Consignee is always first)
+    "select:first-of-type",
 ]
 
+# Dynamic MDL dropdown — appears AFTER selecting MDL in Type of Consignee
+# This is the SECOND dropdown on the same row, labeled 'MDL'
+# Options look like: "M222099154 - P Veera Reddy"
 TP_DYNAMIC_DDL = [
+    # Most common portal ID patterns for this second MDL dropdown
     "select[id*='AllMDLs']",
-    "select[id*='AllConsignees']",
-    "select[id*='ConsigneeID']",
-    "select[id*='ddlConsignee']",
+    "select[id*='ddlMDL']:not([id*='Type']):not([id*='Consignee'])",
     "select[id*='MDLID']",
+    "select[id*='ConsigneeID']",
+    "select[id*='ddlConsignee']:not([id*='Type'])",
+    "select[id*='AllConsignees']",
+    # Row/container based
     "div[id*='Consignee'] select",
     "span[id*='Consignee'] select",
     "tr[id*='Consignee'] select",
+    # Fallback: second SELECT element on page (first = Type of Consignee)
+    "select:nth-of-type(2)",
 ]
 
 TP_DECIMAL_PLACES_CONTROL = [

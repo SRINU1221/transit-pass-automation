@@ -326,9 +326,11 @@ with col_l:
         )
         st.dataframe(records_to_dataframe(recs), use_container_width=True, height=220)
         r0 = recs[0]
+        mdl_id_preview = r0.get('mdl_id', '')
         st.info(
             f"✏️ CONSIGNEE INFO per row — "
-            f"Dispatch Qty: {r0.get('dispatch_qty','?')} | "
+            + (f"MDL ID: **{mdl_id_preview}** | " if mdl_id_preview else "⚠️ MDL ID column missing (add 'MDL ID' to Excel) | ")
+            + f"Dispatch Qty: {r0.get('dispatch_qty','?')} | "
             f"Sale Value: {r0.get('sales_value','?')} | "
             f"Stationery No: {r0.get('stationary_no','?')} (each row gets its own)"
         )
@@ -619,17 +621,7 @@ with col_r:
         st.dataframe(df_res, use_container_width=True, height=260)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # Error screenshots gallery
-    ss_dir = Path("screenshots")
-    if ss_dir.exists():
-        shots = sorted(ss_dir.glob("*.png"), key=os.path.getmtime, reverse=True)[:6]
-        if shots:
-            st.markdown('<div class="card"><div class="card-title">📸 Debug Screenshots</div>', unsafe_allow_html=True)
-            ic = st.columns(2)
-            for i, p in enumerate(shots):
-                with ic[i % 2]:
-                    st.image(str(p), caption=p.stem, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Auto-refresh

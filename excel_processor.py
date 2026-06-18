@@ -64,6 +64,16 @@ COLUMN_ALIASES: dict[str, str] = {
     "DRIVER PHONE":      "phone",
     "DRIVER PHONE NO":   "phone",
 
+    # MDL ID — used to select the correct option in the dynamic consignee dropdown
+    "MDL ID":            "mdl_id",
+    "MDLID":             "mdl_id",
+    "MDL_ID":            "mdl_id",
+    "MDL.ID":            "mdl_id",
+    "MDL NO":            "mdl_id",
+    "MDLNO":             "mdl_id",
+    "CONSIGNEE ID":      "mdl_id",
+    "CONSIGNEEID":       "mdl_id",
+
     # Aggregator
     "AGGREGATOR":        "aggregator",
     "AGGREGATOR NAME":   "aggregator",
@@ -121,6 +131,7 @@ ALL_FIELDS = [
     "driver",
     "license",
     "phone",
+    "mdl_id",
     "aggregator",
     "dispatch_qty",
     "stationary_no",
@@ -154,7 +165,7 @@ def load_records(file_path: str) -> tuple[list[dict], list[str]]:
     if not col_to_field:
         warnings.append(
             "⚠️  No recognised columns found. Expected headers like: "
-            "VEHICLE NO, DRIVER, LICENSE, PHONE, AGGREGATOR, DISPATCH QTY, "
+            "VEHICLE NO, DRIVER, LICENSE, PHONE, MDL ID, AGGREGATOR, DISPATCH QTY, "
             "STATIONARY NO, SALES VALUE"
         )
         return [], warnings
@@ -189,7 +200,7 @@ def load_records(file_path: str) -> tuple[list[dict], list[str]]:
         )
         # Warn about missing important fields
         found_fields = set(col_to_field.values())
-        important = {"aggregator", "dispatch_qty", "stationary_no", "sales_value"}
+        important = {"mdl_id", "aggregator", "dispatch_qty", "stationary_no", "sales_value"}
         missing = important - found_fields
         if missing:
             warnings.append(
@@ -226,7 +237,7 @@ def records_to_dataframe(records: list[dict]) -> pd.DataFrame:
     display_cols = [
         "_row", "_side",
         "vehicle_no", "vehicle_type", "driver", "license", "phone",
-        "aggregator", "dispatch_qty", "stationary_no", "sales_value",
+        "mdl_id", "aggregator", "dispatch_qty", "stationary_no", "sales_value",
     ]
     df = pd.DataFrame(records)
     existing = [c for c in display_cols if c in df.columns]
@@ -239,6 +250,7 @@ def records_to_dataframe(records: list[dict]) -> pd.DataFrame:
         "driver":        "Driver",
         "license":       "License",
         "phone":         "Driver Mobile",
+        "mdl_id":        "MDL ID",
         "aggregator":    "Aggregator",
         "dispatch_qty":  "Dispatch Qty",
         "stationary_no": "Stationary No",
