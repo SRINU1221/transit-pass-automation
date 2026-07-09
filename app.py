@@ -394,7 +394,9 @@ with col_l:
             _records    = [dict(r) for r in st.session_state.records]
             _username   = str(username)
             _password   = str(password)
-            _headless   = bool(headless)
+            # Force headless on Linux (Render/server has no display)
+            import platform
+            _headless   = True if platform.system() == "Linux" else bool(headless)
             _pdf_folder = str(st.session_state.pdf_folder)
             _mode       = str(mode)
 
