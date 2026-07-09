@@ -1248,51 +1248,14 @@ async def capture_pdf_from_print(
                     let loc = window.location.href;
                     base.href = loc.substring(0, loc.lastIndexOf('/') + 1);
 
-                    // Recursively search and adjust any remaining large margins/paddings and hardcoded heights first
-                    const allElements = document.getElementById("PrintContent").getElementsByTagName("*");
-                    for (let el of allElements) {
-                        if (el.style.marginTop && parseInt(el.style.marginTop) > 30) {
-                            el.style.setProperty("margin-top", "10px", "important");
-                        }
-                        if (el.style.paddingTop && parseInt(el.style.paddingTop) > 30) {
-                            el.style.setProperty("padding-top", "10px", "important");
-                        }
-                        // Reset any hardcoded heights to auto to let tables shrink naturally
-                        if (el.style.height && el.style.height.includes("415px")) {
-                            el.style.setProperty("height", "auto", "important");
-                        }
-                    }
-
-                    // Adjust margins/paddings on print tables to fit within a single page
-                    const tables = Array.from(document.querySelectorAll("#PrintContent table"));
-                    const originalTable = tables.find(t => t.textContent && (
-                        t.textContent.includes("Original") ||
-                        t.textContent.includes("ORIGINAL")
-                    ));
-                    const duplicateTable = tables.find(t => t.textContent && (
-                        t.textContent.includes("Duplicate") ||
-                        t.textContent.includes("DUPLICATE")
-                    ));
-
-                    if (originalTable) {
-                        originalTable.style.setProperty("margin-top", "100px", "important");
-                    }
-                    if (duplicateTable) {
-                        duplicateTable.style.setProperty("margin-top", "100px", "important");
-                        const firstTd = duplicateTable.querySelector("td");
-                        if (firstTd) {
-                            firstTd.style.setProperty("padding-top", "100px", "important");
-                        }
-                    }
-
-                    // Force background graphics to print and enforce single-page scaling
+                    // ── OS-print equivalent: only force color-accurate backgrounds,
+                    //    let the page's own @media print CSS handle layout (zoom, margins, page breaks)
+                    //    exactly as Chrome's native "Save as PDF" does.
                     const style = document.createElement("style");
                     style.textContent =
                         "* { -webkit-print-color-adjust: exact !important;" +
                         "    print-color-adjust: exact !important; }" +
-                        "body { background: white !important; margin: 0; padding: 0; }" +
-                        "#PrintContent { zoom: 0.82 !important; max-height: 100% !important; page-break-inside: avoid !important; }" +
-                        "@page { size: A4 portrait; margin: 0.2in !important; }";
+                        "body { background: white !important; }";
                     document.head.appendChild(style);
 
                     // Re-render barcodes using the portal's local $Barcode library
@@ -1336,20 +1299,26 @@ async def capture_pdf_from_print(
     await popup.wait_for_timeout(1000)
     log_fn("   ✓ Page prepared.")
 
-    # ── Step 4: Generate PDF via CDP (no OS dialog, no keystrokes) ────────────
+    # ── Step 4: Generate PDF via CDP — settings mirror Chrome's OS "Save as PDF" ─
+    # preferCSSPageSize=True  → uses the page's own @page CSS (size, margins) just
+    #                           like the browser print dialog does natively.
+    # marginTop/Bottom/Left/Right = 0 → let @page CSS own the margins entirely.
+    # scale = 1.0             → no forced zoom; the page's print CSS handles it.
     log_fn(f"💾 Generating PDF → {pdf_path.name}")
     try:
         cdp_session = await context.new_cdp_session(popup)
         result = await cdp_session.send("Page.printToPDF", {
-            "printBackground": True,
-            "paperWidth": 8.27,    # A4 width in inches
-            "paperHeight": 11.69,  # A4 height in inches
-            "marginTop": 0.4,
-            "marginBottom": 0.4,
-            "marginLeft": 0.4,
-            "marginRight": 0.4,
+            "printBackground":    True,
+            "paperWidth":         8.27,   # A4 width  (inches)
+            "paperHeight":        11.69,  # A4 height (inches)
+            "marginTop":          0,      # deferred to page @page CSS
+            "marginBottom":       0,
+            "marginLeft":         0,
+            "marginRight":        0,
+            "preferCSSPageSize":  True,   # honour the page's own @page size/margin rules
             "displayHeaderFooter": False,
-            "landscape": False,
+            "landscape":          False,
+            "scale":              1.0,    # no forced scaling — identical to OS print
         })
         pdf_bytes = base64.b64decode(result["data"])
         pdf_path.write_bytes(pdf_bytes)
@@ -2429,15 +2398,15 @@ class TransitPassAutomation:
         stat   = record.get("stationary_no", "") or ""
         label  = f"Row{row}_{veh}"
 
-        # Build a descriptive, filesystem-safe filename:
-        #   TP_<VehicleNo>_<StationeryNo>_<timestamp>.pdf
+        # Build filename using only the Stationary Number.
+        # Fallback to TP_<VehicleNo>_<timestamp>.pdf if stationary number is missing.
         def _safe(s: str) -> str:
             return "".join(c if c.isalnum() or c in "-_" else "_" for c in str(s)).strip("_")
 
         ts         = int(time.time())
         pdf_folder = Path(config.PDF_SAVE_FOLDER).resolve()
         pdf_folder.mkdir(parents=True, exist_ok=True)
-        fname      = f"TP_{_safe(veh)}{'_' + _safe(stat) if stat else ''}_{ts}.pdf"
+        fname      = f"{_safe(stat)}.pdf" if stat else f"TP_{_safe(veh)}_{ts}.pdf"
         pdf_path   = pdf_folder / fname
 
         for attempt in range(1, config.MAX_RETRIES + 1):

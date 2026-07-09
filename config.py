@@ -446,12 +446,13 @@ PAGE_LOAD_TIMEOUT     = 30_000
 ELEMENT_TIMEOUT       = 10_000
 OTP_WAIT_TIMEOUT      = 180
 MAX_RETRIES           = 2
-HEADLESS              = False
+HEADLESS              = True   # Must be True on Render (no display on server)
 
 # Default PDF save folder — Desktop/TransitPass_PDFs
 # The app UI lets the user override this at run-time.
 PDF_FOLDER_LABEL = "Transit Pass PDF Folder"
 import os as _os
+# On Render/Linux: save PDFs next to app.py (no Desktop folder on server)
 PDF_SAVE_FOLDER = _os.path.join(
-    _os.path.expanduser("~"), "Desktop", "TransitPass_PDFs"
+    _os.path.dirname(_os.path.abspath(__file__)), "pdfs"
 )
