@@ -8,6 +8,8 @@ import asyncio
 import json
 import os
 import queue
+import subprocess
+import sys
 import threading
 import time
 from datetime import datetime
@@ -18,6 +20,21 @@ import streamlit as st
 
 import config
 from excel_processor import load_records, records_to_dataframe, add_status_column
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Ensure Playwright Chromium is installed at runtime (Render server fix)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@st.cache_resource
+def _ensure_playwright_browser():
+    """Install Playwright Chromium once per server startup."""
+    result = subprocess.run(
+        [sys.executable, "-m", "playwright", "install", "chromium"],
+        capture_output=True, text=True
+    )
+    return result.returncode
+
+_ensure_playwright_browser()
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Page config + CSS
