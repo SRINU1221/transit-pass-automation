@@ -5,6 +5,7 @@ echo "==> Installing Python packages..."
 pip install -r requirements.txt
 
 echo "==> Installing Playwright Chromium browser..."
+export PLAYWRIGHT_BROWSERS_PATH=0
 playwright install chromium
 
 echo "==> Build complete!"
