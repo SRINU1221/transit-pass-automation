@@ -313,13 +313,16 @@ with col_l:
                              type="password", key="password")
     mode = st.selectbox("Automation Type", ["MDL", "TP"], index=0, key="mode")
 
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
     with c1:
         headless = st.toggle("🕶️ Headless", value=False,
                              help="ON = browser invisible  OFF = see browser")
     with c2:
         delay = st.number_input("⏱️ Delay (sec)", 1, 30, 3,
                                 help="Wait between records")
+    with c3:
+        stop_on_failure = st.toggle("🛑 Stop on Failure", value=False,
+                                    help="ON = stop all remaining records if any one record fails")
 
     # PDF save folder (editable, defaults to Desktop/TransitPass_PDFs)
     pdf_folder_input = st.text_input(
@@ -388,6 +391,7 @@ with col_l:
                 except: break
 
             config.DELAY_BETWEEN_RECORDS = float(delay)
+            config.STOP_ON_FAILURE       = bool(stop_on_failure)
 
             _log_q      = st.session_state.log_q
             _otp_resp_q = st.session_state.otp_resp_q

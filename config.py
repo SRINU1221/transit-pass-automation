@@ -446,6 +446,7 @@ PAGE_LOAD_TIMEOUT     = 30_000
 ELEMENT_TIMEOUT       = 10_000
 OTP_WAIT_TIMEOUT      = 180
 MAX_RETRIES           = 2
+STOP_ON_FAILURE       = False  # If True → stop all remaining records when any one record fails
 HEADLESS              = True   # Must be True on Render (no display on server)
 
 # Default PDF save folder — Desktop/TransitPass_PDFs
