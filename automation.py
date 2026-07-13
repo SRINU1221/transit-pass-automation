@@ -1405,6 +1405,8 @@ class TransitPassAutomation:
                 pass
         
         # Build appState structure for print settings
+        # GR (Govt Royalty) prints ALL pages; MDL/TP print page 1 only.
+        _gr_mode = (self.mode == "GR")
         app_state = {
             "recentDestinations": [
                 {
@@ -1419,9 +1421,12 @@ class TransitPassAutomation:
             "isCssBackgroundEnabled": True,
             "scalingType": 3,      # Custom scaling
             "scaling": "75",       # 75%
-            "pagesType": 2,        # Custom pages
-            "pageRange": "1"       # Page 1 only
         }
+        if not _gr_mode:
+            # MDL / TP — restrict to page 1 only
+            app_state["pagesType"] = 2   # Custom pages
+            app_state["pageRange"] = "1"  # Page 1 only
+        # GR — omit pagesType/pageRange so Chrome prints all pages
         
         # Inject into preferences
         prefs["printing"] = prefs.get("printing", {})

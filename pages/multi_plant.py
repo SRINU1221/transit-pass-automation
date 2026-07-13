@@ -169,9 +169,14 @@ with _col_l:
                                      disabled=_rt["running"],placeholder="EPermit password")
     _c1,_c2=st.columns(2)
     with _c1:
-        _cfg["mode"]=st.selectbox("Mode",["MDL","TP"],
-                                   index=["MDL","TP"].index(_cfg["mode"]),
-                                   key=f"mode_{_sel}",disabled=_rt["running"])
+        _MODES=["MDL","TP","GR"]
+        _MODE_LABELS={"MDL":"MDL","TP":"TP","GR":"🏗️ Govt Royalty"}
+        _cur_mode=_cfg["mode"] if _cfg["mode"] in _MODES else "MDL"
+        _sel_mode=st.selectbox("Mode",_MODES,
+                               index=_MODES.index(_cur_mode),
+                               format_func=lambda m:_MODE_LABELS.get(m,m),
+                               key=f"mode_{_sel}",disabled=_rt["running"])
+        _cfg["mode"]=_sel_mode
     with _c2:
         _cfg["headless"]=st.toggle("🕶️ Headless",value=_cfg["headless"],
                                     key=f"hl_{_sel}",disabled=_rt["running"])

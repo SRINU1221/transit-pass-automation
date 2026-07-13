@@ -317,7 +317,15 @@ with col_l:
     username = st.text_input("Username", placeholder="EPermit username", key="username")
     password = st.text_input("Password", placeholder="EPermit password",
                              type="password", key="password")
-    mode = st.selectbox("Automation Type", ["MDL", "TP"], index=0, key="mode")
+    mode = st.selectbox(
+        "Automation Type",
+        ["MDL", "TP", "Govt Royalty"],
+        index=0, key="mode",
+        format_func=lambda m: {"MDL": "MDL", "TP": "TP", "Govt Royalty": "🏛️ Govt Royalty (All Pages)"}.get(m, m)
+    )
+    # Map display name → internal code
+    _MODE_MAP = {"MDL": "MDL", "TP": "TP", "Govt Royalty": "GR"}
+
 
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -408,7 +416,7 @@ with col_l:
             import platform
             _headless   = True if platform.system() == "Linux" else bool(headless)
             _pdf_folder = str(st.session_state.pdf_folder)
-            _mode       = str(mode)
+            _mode       = _MODE_MAP.get(str(mode), str(mode))
 
             def _run():
                 _log_q.put("🚀 Automation thread started…")
