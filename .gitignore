@@ -7,6 +7,9 @@ chrome_profile_plant_c/
 chrome_profile_plant_d/
 chrome_profile_plant_e/
 
+# Environment / secrets (DB credentials)
+.env
+
 # Generated PDFs
 pdfs/
 *.pdf
