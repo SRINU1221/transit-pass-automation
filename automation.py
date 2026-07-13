@@ -1357,12 +1357,14 @@ class TransitPassAutomation:
         progress_fn: Optional[Callable[[int, int], None]] = None,
         headless:    bool = config.HEADLESS,
         mode:        str = "MDL",
+        chrome_profile_dir: Optional[str] = None,
     ):
         self.log        = log_fn
         self.otp_fn     = otp_fn
         self.progress   = progress_fn
         self.headless   = headless
         self.mode       = mode
+        self.chrome_profile_dir = chrome_profile_dir or "chrome_profile"
         self.playwright = None
         self.browser:   Optional[Browser]        = None
         self.context:   Optional[BrowserContext] = None
@@ -1387,7 +1389,7 @@ class TransitPassAutomation:
 
         # Pre-configure Chrome's Default Preferences to default to 'Save as PDF'
         # and print Page 1 only with 75% scaling.
-        user_data_dir = Path("chrome_profile").resolve()
+        user_data_dir = Path(self.chrome_profile_dir).resolve()
         user_data_dir.mkdir(parents=True, exist_ok=True)
         
         prefs_dir = user_data_dir / "Default"
@@ -1495,13 +1497,22 @@ class TransitPassAutomation:
 
 
     async def close(self):
+        # ── Step 1: Graceful close (max 2 seconds) ────────────────
         try:
-            if self.context:    await self.context.close()
-            if self.browser:    await self.browser.close()
-            if self.playwright: await self.playwright.stop()
+            await asyncio.wait_for(self.context.close(), timeout=2.0)
+        except Exception:
+            pass  # timeout or already closed — move on
+
+        # ── Step 2: Force-kill — terminates the Chrome process ────
+        # playwright.stop() kills the underlying browser process even
+        # if context.close() timed out or partially hung.
+        try:
+            await self.playwright.stop()
         except Exception:
             pass
+
         self.log("🔒 Browser closed.")
+
 
     # ── Login ─────────────────────────────────────────────────
 
@@ -1528,26 +1539,84 @@ class TransitPassAutomation:
             await self.page.fill(config.SEL_PASSWORD, password)
             await self.page.wait_for_timeout(100)
 
-            # Click LOGIN → triggers OTP SMS
-            self.log(f"🖱️  Clicking LOGIN button…")
+            # Click LOGIN
+            self.log("🖱️  Clicking LOGIN button…")
             await self.page.click(config.SEL_LOGIN_BTN)
-            self.log("⏳ Waiting for OTP to be sent to your mobile…")
-            await self.page.wait_for_timeout(1000)
+            self.log("⏳ Waiting for site response…")
+            await self.page.wait_for_timeout(300)
 
             ss = await take_screenshot(self.page, "after_login_click")
             self.log(f"📸 Screenshot → {ss}")
 
-            # Detect OTP input field
-            otp_sel = await try_selectors(self.page, config.OTP_INPUT_SELECTORS, timeout=12_000)
-            if otp_sel:
-                self.log(f"📲 OTP field detected [{otp_sel}]. Check your mobile for OTP…")
+            # ── Fast polling loop: detect OTP field OR error message ───────
+            # Polls every 300ms for up to 10s — exits immediately when found.
+            # This replaces the old fixed 1s + 2.5s + 12s timeout chain.
+            _otp_sel_found = None
+            _login_error   = None
+
+            for _attempt in range(34):          # 34 × 300ms ≈ 10 seconds max
+                await asyncio.sleep(0.3)
+
+                # ① Check for site error message (fast-fail on wrong credentials)
+                if "login" in self.page.url.lower():
+                    try:
+                        _err_txt = await self.page.evaluate("""() => {
+                            const sels = [
+                                'span[id$="lblMessage"]','span[id$="lblError"]',
+                                'label[id$="lblMessage"]','label[id$="lblError"]',
+                                'span[id$="lblMsg"]','label[id$="lblMsg"]',
+                                '.alert-danger','.alert-warning',
+                                '.validation-summary-errors',
+                                '[id*="ErrMsg"]','[id*="errMsg"]',
+                                'span[style*="color:red"]',
+                                'span[style*="color: red"]',
+                                'font[color="red"]'
+                            ];
+                            for (const s of sels) {
+                                try {
+                                    const el = document.querySelector(s);
+                                    if (el && el.offsetHeight > 0) {
+                                        const t = el.innerText.trim();
+                                        if (t.length > 3) return t;
+                                    }
+                                } catch(e) {}
+                            }
+                            return '';
+                        }""")
+                        if _err_txt:
+                            _login_error = _err_txt
+                            break
+                    except Exception:
+                        pass
+
+                # ② Check for OTP input field
+                for _otp_s in config.OTP_INPUT_SELECTORS:
+                    try:
+                        _el = await self.page.query_selector(_otp_s)
+                        if _el and await _el.is_visible():
+                            _otp_sel_found = _otp_s
+                            break
+                    except Exception:
+                        pass
+                if _otp_sel_found:
+                    break
+
+            # ── Result of polling ─────────────────────────────────────────
+            if _login_error:
+                self.log(f"❌ Login failed — site says: {_login_error}")
+                return False
+
+            if _otp_sel_found:
+                self.log(f"📲 OTP field detected [{_otp_sel_found}]. Check your mobile for OTP…")
                 self.log("__OTP_REQUESTED__")
             else:
+                # OTP field not found — check if already logged in (rare: no OTP site)
                 if await self._is_logged_in():
                     self.log("✅ Logged in (no OTP required).")
                     return True
-                self.log("⚠️  OTP field not found — signalling prompt anyway…")
-                self.log("__OTP_REQUESTED__")
+                # Still on login page with no detectable error → credentials likely wrong
+                self.log("❌ Login failed — could not detect OTP field or error. Check credentials.")
+                return False   # ← do NOT signal OTP here (was causing 5-min timeout)
 
             # Wait for OTP from user
             otp = self.otp_fn() if self.otp_fn else None
@@ -1556,17 +1625,17 @@ class TransitPassAutomation:
                 return False
 
             self.log("🔢 Entering OTP…")
-            if otp_sel:
-                await self.page.fill(otp_sel, otp.strip())
+            if _otp_sel_found:
+                await self.page.fill(_otp_sel_found, otp.strip())
                 await self.page.wait_for_timeout(500)
 
-            # Submit OTP — #btnGetOtp is the same button reused for OTP submit
+            # Submit OTP
             submitted = await safe_click(self.page, config.OTP_SUBMIT_SELECTORS)
             if not submitted:
                 self.log("⚠️  OTP submit button not found — pressing Enter…")
                 await self.page.keyboard.press("Enter")
 
-            # Smart wait — poll for URL change instead of blind 3s sleep
+            # Wait for redirect away from login page
             try:
                 await self.page.wait_for_url(
                     lambda url: "Login" not in url or "OTP" not in url,
@@ -1591,6 +1660,7 @@ class TransitPassAutomation:
             await take_screenshot(self.page, "login_error")
             return False
 
+
     async def _is_logged_in(self) -> bool:
         try:
             await self.page.wait_for_url(
@@ -1601,6 +1671,38 @@ class TransitPassAutomation:
         except Exception:
             url = self.page.url
             return "Login" not in url and "login" not in url
+
+    async def _detect_page_error(self) -> str:
+        """Scan the current page for visible validation/error messages.
+        Returns the error text if found, empty string otherwise."""
+        try:
+            err = await self.page.evaluate("""() => {
+                const sels = [
+                    'span[id$="lblMessage"]','span[id$="lblError"]',
+                    'label[id$="lblMessage"]','label[id$="lblError"]',
+                    'span[id$="lblMsg"]','label[id$="lblMsg"]',
+                    'span[id$="lblValidation"]','label[id$="lblValidation"]',
+                    '.alert-danger','.alert-warning',
+                    '.validation-summary-errors',
+                    '[id*="ErrMsg"]','[id*="errMsg"]','[id*="Err"]',
+                    'span[style*="color:red"]','span[style*="color: red"]',
+                    'font[color="red"]','td[style*="color:red"]'
+                ];
+                for (const s of sels) {
+                    try {
+                        const el = document.querySelector(s);
+                        if (el && el.offsetHeight > 0) {
+                            const t = el.innerText.trim();
+                            if (t.length > 3) return t;
+                        }
+                    } catch(e) {}
+                }
+                return '';
+            }""")
+            return err or ""
+        except Exception:
+            return ""
+
 
     async def _check_and_recover_session(self) -> bool:
         """Checks if session has expired (URL redirect to login page) and re-logs in."""
@@ -2148,6 +2250,17 @@ class TransitPassAutomation:
         if not ok:
             await self.page.keyboard.press("Enter")
 
+        # Wait briefly for AJAX postback response
+        await self.page.wait_for_timeout(1500)
+
+        # ── Check for validation error (e.g. invalid stationary number) ──────
+        _val_err = await self._detect_page_error()
+        if _val_err:
+            _stat_no = str(record.get("stationary_no", "")).strip()
+            self.log(f"__ERROR__❌ Invalid Stationary Number!|Site error for Stat No '{_stat_no}': {_val_err}|Fix the stationary number in your Excel file. Close Chrome and restart automation.")
+            self._stop = True
+            raise ValueError(f"Stationary number validation: {_val_err}")
+
         # Wait for Vehicle Type dropdown (confirms Step 4 form loaded)
         vehicle_appeared = await try_selectors(
             self.page, config.VEHICLE_TYPE_DDL, timeout=8000
@@ -2357,7 +2470,7 @@ class TransitPassAutomation:
         ok = await safe_fill(self.page, config.STATIONARY_NO_INPUT, stat_no)
         self.log(f"   Stationary No='{stat_no}': {'✓' if ok else '⚠'}")
 
-        # ── 5. CALCULATE ──────────────────────────────────────────────────────
+        # ── CALCULATE ───────────────────────────────────────────────────────
         self.log("   Clicking CALCULATE…")
         calc_sel = await try_selectors(self.page, config.TP_CALCULATE_BTN, timeout=5000)
         if calc_sel:
@@ -2365,9 +2478,35 @@ class TransitPassAutomation:
         else:
             self.log("   ⚠️ CALCULATE button not found — pressing Enter")
             await self.page.keyboard.press("Enter")
-        await wait_for_ajax(self.page, timeout=5000)
+
+        # Wait for AJAX postback triggered by CALCULATE to complete
+        await wait_for_ajax(self.page, timeout=8000)
+
+        # ── Check for validation error (e.g. invalid stationary number) ──────
+        await self.page.wait_for_timeout(800)
+        _val_err = await self._detect_page_error()
+        if _val_err:
+            _stat_no = str(record.get("stationary_no", "")).strip()
+            self.log(f"__ERROR__❌ Invalid Stationary Number!|Site error for Stat No '{_stat_no}': {_val_err}|Fix the stationary number in your Excel file. Close Chrome and restart automation.")
+            self._stop = True
+            raise ValueError(f"Stationary number validation: {_val_err}")
 
         # ── 6. DRIVER DETAILS form ────────────────────────────────────────────
+        # CALCULATE triggers an ASP.NET postback that renders the Driver section.
+        # Explicitly wait up to 10s for the Driver Name field to appear before filling.
+        self.log("📋 Waiting for DRIVER DETAILS form to appear…")
+        driver_sel = await try_selectors(self.page, config.DRIVER_NAME_INPUT, timeout=10000)
+        if not driver_sel:
+            # Field still not visible — take screenshot + scan to help debug
+            await take_screenshot(self.page, f"driver_form_missing_{label.replace(' ', '_')}")
+            fields = await discover_fields(self.page)
+            all_inputs = [f for f in fields if f["tag"] in ("INPUT", "SELECT", "TEXTAREA")]
+            self.log(f"   ⚠️ Driver Name field not found after CALCULATE. "
+                     f"Fields on page: {[f['id'] for f in all_inputs[:20]]}")
+            self.log(f"   Current URL: {self.page.url}")
+        else:
+            self.log("   ✓ Driver DETAILS form is ready.")
+
         self.log("📋 Filling DRIVER DETAILS form…")
 
         ok = await safe_fill(self.page, config.DRIVER_NAME_INPUT, record.get("driver", ""))
@@ -2509,6 +2648,8 @@ async def run_batch(
     headless:    bool = False,
     pdf_folder:  Optional[str] = None,
     mode:        str = "MDL",
+    chrome_profile_dir: Optional[str] = None,
+    stop_event = None,   # threading.Event — when set, stops immediately & closes browser
 ) -> List[Dict]:
     """
     Login then generate one Transit Pass per record.
@@ -2526,13 +2667,31 @@ async def run_batch(
         progress_fn=progress_fn,
         headless=headless,
         mode=mode,
+        chrome_profile_dir=chrome_profile_dir,
     )
     try:
         await engine.start()
 
+        # ── Stop-event watcher — closes browser immediately when triggered ──
+        _watcher_task = None
+        if stop_event is not None:
+            async def _stop_watcher():
+                while not engine._stop:
+                    if stop_event.is_set():
+                        engine._stop = True
+                        log_fn("⏹️ Stop triggered — closing browser now…")
+                        try:
+                            await engine.close()
+                        except Exception:
+                            pass
+                        return
+                    await asyncio.sleep(0.5)
+            _watcher_task = asyncio.create_task(_stop_watcher())
+
         # Login
         ok = await engine.login(username, password)
         if not ok:
+            log_fn("__ERROR__❌ Login Failed!|Wrong username or password, or the EPermit site is unavailable.|Close the Chrome browser and try again with correct credentials.")
             log_fn("❌ Login failed. All records marked as failed.")
             for r in records:
                 r["_status"] = "❌ Login Failed"
@@ -2597,8 +2756,14 @@ async def run_batch(
         log_fn(f"{'═'*55}")
 
     except Exception as e:
+        _short = str(e)[:300]
+        log_fn(f"__ERROR__💥 Automation Error!|{_short}|Close the Chrome browser and try again. If the problem persists, check your credentials and internet connection.")
         log_fn(f"💥 Fatal error: {e}\n{traceback.format_exc()}")
     finally:
+        # Cancel the stop-event watcher if it's still running
+        if _watcher_task is not None and not _watcher_task.done():
+            _watcher_task.cancel()
         await engine.close()
+
 
     return records

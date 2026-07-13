@@ -44,7 +44,7 @@ st.set_page_config(
     page_title="Transit Pass Automation — Telangana Mines",
     page_icon="🚛",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 st.markdown("""
@@ -185,6 +185,7 @@ def _init():
         "live_failed":      0,
         "live_skipped":     0,
         "live_current":     "",      # label of the record currently being processed
+        "error_msg":        "",      # set when __ERROR__ signal received
     }
     for k, v in defs.items():
         if k not in st.session_state:
@@ -223,6 +224,11 @@ if st.session_state.running:
                 st.session_state.live_failed  += 1
             elif _rec_result == "skipped":
                 st.session_state.live_skipped += 1
+
+        elif msg.startswith("__ERROR__"):
+            st.session_state.error_msg = msg[len("__ERROR__"):]
+            st.session_state.running   = False
+            st.session_state.done      = True
 
         elif msg.startswith("__DONE__"):
             st.session_state.running = False
@@ -473,62 +479,67 @@ with col_l:
             st.session_state.running = False
             st.session_state.log_lines.append("⏹️  Stop requested by user.")
 
-    # ── Fixed OTP Entry (always visible below Start/Stop) ────────────────────
-    _otp_needed = (st.session_state.running
-                   and st.session_state.otp_requested
-                   and not st.session_state.otp_submitted)
-
-    _otp_css = "otp-active" if _otp_needed else "otp-idle"
-
-    if _otp_needed:
+    # ── OTP Entry — hidden when credentials error is active ──────
+    if st.session_state.get("error_msg", ""):
         st.markdown(
-            '<div class="otp-section otp-active">'
-            '<div class="otp-label-active">📲 OTP Required — Enter Here!</div>'
-            '<div class="otp-hint">An OTP has been sent to your mobile. '
-            'Enter it below and click <strong>Submit OTP</strong> to continue.</div>'
+            '<div class="otp-section otp-idle">'
+            '<div class="otp-label-idle">🔢 OTP Field — Hidden</div>'
+            '<div style="color:#f87171;font-size:.82rem;">⚠️ Fix the login error first. '
+            'OTP field will reappear after you dismiss the error and restart with correct credentials.</div>'
             '</div>',
             unsafe_allow_html=True,
         )
     else:
-        _status_txt = (
-            "✅ OTP submitted — automation continuing…" if st.session_state.otp_submitted
-            else "Waiting for automation to reach OTP step…"
-        )
-        st.markdown(
-            f'<div class="otp-section otp-idle">'
-            f'<div class="otp-label-idle">🔢 Step 3b — Enter OTP Here</div>'
-            f'<div style="color:#475569;font-size:.8rem">{_status_txt}</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
+        _otp_needed = (st.session_state.running
+                       and st.session_state.otp_requested
+                       and not st.session_state.otp_submitted)
 
-    otp_col1, otp_col2 = st.columns([2, 1])
-    with otp_col1:
-        otp_val = st.text_input(
-            "OTP",
-            max_chars=8,
-            placeholder="Enter OTP here" if _otp_needed else "OTP field (ready)",
-            key="otp_field",
-            label_visibility="collapsed",
-            disabled=not _otp_needed,
-        )
-    with otp_col2:
-        if st.button(
-            "✅ Submit OTP",
-            use_container_width=True,
-            type="primary" if _otp_needed else "secondary",
-            key="otp_btn",
-            disabled=not _otp_needed,
-        ):
-            if otp_val and otp_val.strip():
-                st.session_state.otp_resp_q.put(otp_val.strip())
-                st.session_state.otp_submitted = True
-                st.toast("✅ OTP submitted! Automation resuming…", icon="✅")
-                st.rerun()
-            else:
-                st.error("Please enter the OTP before submitting.")
+        if _otp_needed:
+            st.markdown(
+                '<div class="otp-section otp-active">'
+                '<div class="otp-label-active">📲 OTP Required — Enter Here!</div>'
+                '<div class="otp-hint">An OTP has been sent to your mobile. '
+                'Enter it below and click <strong>Submit OTP</strong> to continue.</div>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            _status_txt = (
+                "✅ OTP submitted — automation continuing…" if st.session_state.otp_submitted
+                else "Waiting for automation to reach OTP step…"
+            )
+            st.markdown(
+                f'<div class="otp-section otp-idle">'
+                f'<div class="otp-label-idle">🔢 Step 3b — Enter OTP Here</div>'
+                f'<div style="color:#475569;font-size:.8rem">{_status_txt}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+        otp_col1, otp_col2 = st.columns([2, 1])
+        with otp_col1:
+            otp_val = st.text_input(
+                "OTP", max_chars=8,
+                placeholder="Enter OTP here" if _otp_needed else "OTP field (ready)",
+                key="otp_field", label_visibility="collapsed",
+                disabled=not _otp_needed,
+            )
+        with otp_col2:
+            if st.button(
+                "✅ Submit OTP", use_container_width=True,
+                type="primary" if _otp_needed else "secondary",
+                key="otp_btn", disabled=not _otp_needed,
+            ):
+                if otp_val and otp_val.strip():
+                    st.session_state.otp_resp_q.put(otp_val.strip())
+                    st.session_state.otp_submitted = True
+                    st.toast("✅ OTP submitted! Automation resuming…", icon="✅")
+                    st.rerun()
+                else:
+                    st.error("Please enter the OTP before submitting.")
 
     st.markdown('</div>', unsafe_allow_html=True)
+
 
     # ── PDF Downloads (per Transit Pass) ────────────────────
     if st.session_state.pdf_files:
@@ -619,7 +630,39 @@ with col_r:
                  f"{st.session_state.progress_done}/{st.session_state.progress_total} records")
 
     # Live log
+    # ── Error popup ─────────────────────────────────────────────
+    _sp_err = st.session_state.get("error_msg", "")
+    if _sp_err:
+        _parts = _sp_err.split("|")
+        _etitle  = _parts[0] if len(_parts) > 0 else "Error"
+        _edetail = _parts[1] if len(_parts) > 1 else ""
+        _eaction = _parts[2] if len(_parts) > 2 else "Close Chrome and try again."
+        st.markdown(f"""
+<div style="background:rgba(239,68,68,.12);border:2px solid #ef4444;
+border-radius:14px;padding:22px;margin-bottom:18px;
+box-shadow:0 4px 24px rgba(239,68,68,.25);">
+  <div style="font-size:1.15rem;font-weight:700;color:#f87171;margin-bottom:8px;">
+    🚨 {_etitle}
+  </div>
+  <div style="color:#fca5a5;font-size:.9rem;margin-bottom:12px;">{_edetail}</div>
+  <div style="background:rgba(255,255,255,.06);border-radius:8px;
+  padding:12px;border-left:3px solid #fbbf24;">
+    <span style="color:#fbbf24;font-weight:600;">👉 Action Required: </span>
+    <span style="color:#e2e8f0;font-size:.88rem;">{_eaction}</span>
+  </div>
+</div>""", unsafe_allow_html=True)
+        if st.button("✖ Dismiss & Reset", use_container_width=True,
+                     key="sp_err_dismiss", type="secondary"):
+            st.session_state.error_msg   = ""
+            st.session_state.running     = False
+            st.session_state.done        = False
+            st.session_state.log_lines   = []
+            st.session_state.otp_requested = False
+            st.session_state.otp_submitted = False
+            st.rerun()
+
     st.markdown('<div class="card"><div class="card-title">📋 Live Automation Log</div>', unsafe_allow_html=True)
+
 
     def _cls(line: str) -> str:
         l = line.lower()

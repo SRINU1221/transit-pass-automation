@@ -1,5 +1,11 @@
 # Browser profile (contains saved cookies/sessions — don't share)
 chrome_profile/
+chrome_profile_plant_*/
+chrome_profile_plant_a/
+chrome_profile_plant_b/
+chrome_profile_plant_c/
+chrome_profile_plant_d/
+chrome_profile_plant_e/
 
 # Generated PDFs
 pdfs/
@@ -12,6 +18,7 @@ screenshots/
 uploaded_royalty.xlsx
 temp_upload.xlsx
 royalty_result.xlsx
+mp_upload_*.xlsx
 
 # Python cache
 __pycache__/
