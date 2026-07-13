@@ -244,7 +244,13 @@ with _col_l:
                                  key=f"mode_{_sel}", disabled=_rt["running"])
     _cfg["headless"] = st.toggle("🕶️ Headless (hide browser)", value=_cfg.get("headless", False),
                                   key=f"hl_{_sel}", disabled=_rt["running"])
+    _cfg["delay"] = st.number_input("⏱️ Delay between records (sec)",
+                                     min_value=1.0, max_value=30.0,
+                                     value=float(_cfg.get("delay", 3.0)),
+                                     step=0.5, key=f"delay_{_sel}",
+                                     disabled=_rt["running"])
     st.markdown('</div>', unsafe_allow_html=True)
+
 
     # Excel upload
     st.markdown('<div class="card"><div class="card-t">📂 Excel Data File</div>',
@@ -285,6 +291,7 @@ with _col_l:
                 "pdf_folder": _pdata["pdf_save_folder"],
                 "mode":       _cfg["mode"],
                 "headless":   _cfg["headless"],
+                "delay":      float(_cfg.get("delay", 3.0)),
                 "records":    list(_cfg["records"]),
             }
             for _q in (_lrt["log_q"], _lrt["otp_resp_q"]):
@@ -306,6 +313,7 @@ with _col_l:
                 _lq.put(f"🚀 [{_ps['plant_name']}] Starting — {len(_ps['records'])} records")
                 loop = asyncio.new_event_loop(); asyncio.set_event_loop(loop)
                 try:
+                    config.DELAY_BETWEEN_RECORDS = _ps["delay"]
                     res = loop.run_until_complete(_rb2(
                         records=_ps["records"], username=_ps["username"],
                         password=_ps["password"],
