@@ -1303,15 +1303,18 @@ async def capture_pdf_from_print(
     await popup.wait_for_timeout(1000)
     log_fn("   ✓ Page prepared.")
 
-    # ── Govt. Royalty: inject compact CSS to eliminate page-breaks & reduce spacing ─
+    # ── Govt. Royalty: inject compact CSS — kill page-breaks ONLY, preserve spacing ─
+    # We do NOT collapse td padding or div/table margins here.
+    # The natural Original + Duplicate spacing must be preserved (same as TP/MDL).
+    # scale=0.62 in CDP settings handles fitting the content on one A4 page.
     if compact:
-        log_fn("🗜️ [Govt. Royalty] Injecting compact CSS for single-page output…")
+        log_fn("🗜️ [Govt. Royalty] Injecting compact CSS (page-breaks only)…")
         try:
             await popup.evaluate("""
                 () => {
                     const style = document.createElement('style');
                     style.textContent = `
-                        /* Kill ALL page-break rules so both copies stay on one page */
+                        /* Kill ALL page-break rules — scale handles fitting on 1 page */
                         * {
                             page-break-before : avoid !important;
                             page-break-after  : avoid !important;
@@ -1320,20 +1323,17 @@ async def capture_pdf_from_print(
                             break-after       : avoid !important;
                             break-inside      : avoid !important;
                         }
-                        /* Override any @page margins to minimal */
+                        /* Override @page margins to minimal */
                         @page { margin: 4mm !important; }
-                        /* Collapse inter-section gaps */
-                        hr, .pagebreak, .page-break,
-                        [class*='pagebreak'], [class*='page-break'],
-                        [style*='page-break'] {
+                        /* Hide explicit page-break separator elements only */
+                        hr.pagebreak, .pagebreak, .page-break,
+                        [class*='pagebreak'], [class*='page-break'] {
                             display : none !important;
                             height  : 0   !important;
                             margin  : 0   !important;
                         }
-                        /* Tighten table cell padding */
-                        td, th { padding: 1px 2px !important; }
-                        /* Reduce top/bottom margins on block elements */
-                        p, div, table { margin-top: 1px !important; margin-bottom: 1px !important; }
+                        /* NOTE: Natural Original / Duplicate spacing is preserved.
+                           Do NOT add margin or padding overrides here. */
                     `;
                     document.head.appendChild(style);
                 }
