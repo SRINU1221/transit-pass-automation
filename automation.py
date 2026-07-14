@@ -1381,7 +1381,7 @@ async def capture_pdf_from_print(
     #                   (override page CSS to force single-page output)
     log_fn(f"💾 Generating PDF → {pdf_path.name}")
     if compact:
-        log_fn("   [Govt. Royalty] compact PDF: scale=0.75, margins=5mm, no @page CSS")
+        log_fn("   [Govt. Royalty] compact PDF: scale=0.85, margins=5mm, no @page CSS")
         cdp_params = {
             "printBackground":     True,
             "landscape":           False,
@@ -1393,7 +1393,7 @@ async def capture_pdf_from_print(
             "marginRight":         0.20,
             "preferCSSPageSize":   False,   # we control layout — ignore site @page CSS
             "displayHeaderFooter": False,
-            "scale":               0.75,    # compress to fit all content on 1 A4 page
+            "scale":               0.85,    # compress to fit all content on 1 A4 page
         }
     else:
         cdp_params = {
