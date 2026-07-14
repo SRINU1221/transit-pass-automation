@@ -1381,19 +1381,19 @@ async def capture_pdf_from_print(
     #                   (override page CSS to force single-page output)
     log_fn(f"💾 Generating PDF → {pdf_path.name}")
     if compact:
-        log_fn("   [Govt. Royalty] Using compact PDF settings (scale=0.62, margins=4mm)")
+        log_fn("   [Govt. Royalty] Using OS print settings — scale=0.9 for single-page fit")
         cdp_params = {
             "printBackground":     True,
             "landscape":           False,
             "paperWidth":          8.27,    # A4 width  (inches)
             "paperHeight":         11.69,   # A4 height (inches)
-            "marginTop":           0.16,    # ~4mm
-            "marginBottom":        0.16,
-            "marginLeft":          0.16,
-            "marginRight":         0.16,
-            "preferCSSPageSize":   False,   # override page CSS — we control layout
+            "marginTop":           0,       # let @page CSS own the margins (same as MDL/TP)
+            "marginBottom":        0,
+            "marginLeft":          0,
+            "marginRight":         0,
+            "preferCSSPageSize":   True,    # OS print — honour page's own @page CSS
             "displayHeaderFooter": False,
-            "scale":               0.62,    # compress to fit extra Govt. Royalty content
+            "scale":               0.9,     # 90% scale → fits both copies on 1 A4 page
         }
     else:
         cdp_params = {
