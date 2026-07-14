@@ -1342,6 +1342,39 @@ async def capture_pdf_from_print(
         except Exception as css_err:
             log_fn(f"   ⚠️ Compact CSS injection failed: {css_err}")
 
+        # ── Add padding-top to Duplicate section to push it slightly down ─────
+        # This balances the whitespace at the bottom of the A4 page.
+        try:
+            await popup.evaluate("""
+                () => {
+                    // Walk all text nodes to find the one containing 'Duplicate'
+                    const walker = document.createTreeWalker(
+                        document.body, NodeFilter.SHOW_TEXT, null
+                    );
+                    let node;
+                    while ((node = walker.nextNode())) {
+                        if (node.textContent.trim().toLowerCase().includes('duplicate')) {
+                            // Walk up to the nearest block-level container
+                            let el = node.parentElement;
+                            while (el && !['DIV', 'TABLE', 'SECTION'].includes(el.tagName)) {
+                                el = el.parentElement;
+                            }
+                            // Go one level higher to get the section wrapper
+                            if (el && el.parentElement && el.parentElement !== document.body) {
+                                el = el.parentElement;
+                            }
+                            if (el) {
+                                el.style.paddingTop = '20px';
+                            }
+                            break;
+                        }
+                    }
+                }
+            """)
+            log_fn("   ✓ Duplicate section padding-top applied.")
+        except Exception as pad_err:
+            log_fn(f"   ⚠️ Duplicate padding failed: {pad_err}")
+
     # ── Step 4: Generate PDF via CDP ────────────────────────────────────────────
     # MDL / TP mode  → preferCSSPageSize=True, scale=1.0  (page's own @page CSS)
     # Govt. Royalty  → preferCSSPageSize=False, scale=0.62, tight margins
