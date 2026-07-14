@@ -1,11 +1,6 @@
-# Browser profile (contains saved cookies/sessions — don't share)
+# Browser profiles (contain saved cookies/sessions — don't share)
 chrome_profile/
-chrome_profile_plant_*/
-chrome_profile_plant_a/
-chrome_profile_plant_b/
-chrome_profile_plant_c/
-chrome_profile_plant_d/
-chrome_profile_plant_e/
+chrome_profile_*/
 
 # Environment / secrets (DB credentials)
 .env
