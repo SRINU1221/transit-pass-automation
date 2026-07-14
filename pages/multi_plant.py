@@ -239,8 +239,8 @@ with _col_l:
     # Run config
     st.markdown('<div class="card"><div class="card-t">⚙️ Run Configuration</div>',
                 unsafe_allow_html=True)
-    _cfg["mode"] = st.selectbox("Mode", ["MDL", "TP"],
-                                 index=["MDL","TP"].index(_cfg.get("mode","MDL")),
+    _cfg["mode"] = st.selectbox("Mode", ["MDL", "TP", "Govt. Royalty"],
+                                 index=["MDL","TP","Govt. Royalty"].index(_cfg.get("mode","MDL")),
                                  key=f"mode_{_sel}", disabled=_rt["running"])
     _cfg["headless"] = st.toggle("🕶️ Headless (hide browser)", value=_cfg.get("headless", False),
                                   key=f"hl_{_sel}", disabled=_rt["running"])

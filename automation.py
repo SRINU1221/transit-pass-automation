@@ -1095,6 +1095,7 @@ async def capture_pdf_from_print(
     print_btn_selectors: list[str],
     pdf_path: Path,
     log_fn,
+    compact: bool = False,
 ) -> bool:
     """
     Fully automated PDF save using CDP Page.printToPDF — no OS dialogs needed.
@@ -1103,6 +1104,9 @@ async def capture_pdf_from_print(
       3. Inject base tag to fix relative logo/image paths
       4. Re-render barcodes using local $Barcode library
       5. Use CDP Page.printToPDF to save directly to pdf_path
+
+    compact=True  → Govt. Royalty mode: aggressive CSS compression + smaller
+                    scale so both Original and Duplicate fit on ONE A4 page.
     """
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -1299,27 +1303,82 @@ async def capture_pdf_from_print(
     await popup.wait_for_timeout(1000)
     log_fn("   ✓ Page prepared.")
 
-    # ── Step 4: Generate PDF via CDP — settings mirror Chrome's OS "Save as PDF" ─
-    # preferCSSPageSize=True  → uses the page's own @page CSS (size, margins) just
-    #                           like the browser print dialog does natively.
-    # marginTop/Bottom/Left/Right = 0 → let @page CSS own the margins entirely.
-    # scale = 1.0             → no forced zoom; the page's print CSS handles it.
+    # ── Govt. Royalty: inject compact CSS to eliminate page-breaks & reduce spacing ─
+    if compact:
+        log_fn("🗜️ [Govt. Royalty] Injecting compact CSS for single-page output…")
+        try:
+            await popup.evaluate("""
+                () => {
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        /* Kill ALL page-break rules so both copies stay on one page */
+                        * {
+                            page-break-before : avoid !important;
+                            page-break-after  : avoid !important;
+                            page-break-inside : avoid !important;
+                            break-before      : avoid !important;
+                            break-after       : avoid !important;
+                            break-inside      : avoid !important;
+                        }
+                        /* Override any @page margins to minimal */
+                        @page { margin: 4mm !important; }
+                        /* Collapse inter-section gaps */
+                        hr, .pagebreak, .page-break,
+                        [class*='pagebreak'], [class*='page-break'],
+                        [style*='page-break'] {
+                            display : none !important;
+                            height  : 0   !important;
+                            margin  : 0   !important;
+                        }
+                        /* Tighten table cell padding */
+                        td, th { padding: 1px 2px !important; }
+                        /* Reduce top/bottom margins on block elements */
+                        p, div, table { margin-top: 1px !important; margin-bottom: 1px !important; }
+                    `;
+                    document.head.appendChild(style);
+                }
+            """)
+            await popup.wait_for_timeout(300)
+        except Exception as css_err:
+            log_fn(f"   ⚠️ Compact CSS injection failed: {css_err}")
+
+    # ── Step 4: Generate PDF via CDP ────────────────────────────────────────────
+    # MDL / TP mode  → preferCSSPageSize=True, scale=1.0  (page's own @page CSS)
+    # Govt. Royalty  → preferCSSPageSize=False, scale=0.62, tight margins
+    #                   (override page CSS to force single-page output)
     log_fn(f"💾 Generating PDF → {pdf_path.name}")
-    try:
-        cdp_session = await context.new_cdp_session(popup)
-        result = await cdp_session.send("Page.printToPDF", {
+    if compact:
+        log_fn("   [Govt. Royalty] Using compact PDF settings (scale=0.62, margins=4mm)")
+        cdp_params = {
+            "printBackground":     True,
+            "landscape":           False,
+            "paperWidth":          8.27,    # A4 width  (inches)
+            "paperHeight":         11.69,   # A4 height (inches)
+            "marginTop":           0.16,    # ~4mm
+            "marginBottom":        0.16,
+            "marginLeft":          0.16,
+            "marginRight":         0.16,
+            "preferCSSPageSize":   False,   # override page CSS — we control layout
+            "displayHeaderFooter": False,
+            "scale":               0.62,    # compress to fit extra Govt. Royalty content
+        }
+    else:
+        cdp_params = {
             "printBackground":    True,
-            "paperWidth":         8.27,   # A4 width  (inches)
-            "paperHeight":        11.69,  # A4 height (inches)
-            "marginTop":          0,      # deferred to page @page CSS
+            "paperWidth":         8.27,
+            "paperHeight":        11.69,
+            "marginTop":          0,
             "marginBottom":       0,
             "marginLeft":         0,
             "marginRight":        0,
-            "preferCSSPageSize":  True,   # honour the page's own @page size/margin rules
+            "preferCSSPageSize":  True,
             "displayHeaderFooter": False,
             "landscape":          False,
-            "scale":              1.0,    # no forced scaling — identical to OS print
-        })
+            "scale":              1.0,
+        }
+    try:
+        cdp_session = await context.new_cdp_session(popup)
+        result = await cdp_session.send("Page.printToPDF", cdp_params)
         pdf_bytes = base64.b64decode(result["data"])
         pdf_path.write_bytes(pdf_bytes)
         log_fn(f"   ✅ PDF saved successfully → {pdf_path.name} ({len(pdf_bytes):,} bytes)")
@@ -2317,8 +2376,13 @@ class TransitPassAutomation:
 
     # ── Step 5: TP (Transit Pass) specific flow ───────────────
 
-    async def _process_tp_flow(self, record: dict, label: str, pdf_path: Path) -> bool:
-        self.log("📋 Executing TP (Transit Pass) Flow...")
+    async def _process_tp_flow(
+        self, record: dict, label: str, pdf_path: Path,
+        govt_royalty: bool = False,
+    ) -> bool:
+        mode_label = "Govt. Royalty" if govt_royalty else "TP"
+        self.log(f"📋 Executing {mode_label} (Transit Pass) Flow...")
+
 
         # ── 1. TYPE OF CONSIGNEE: select "MDL" ───────────────────────────────
         consignee_type_sel = await try_selectors(self.page, config.TP_CONSIGNEE_TYPE_DDL, timeout=8000)
@@ -2522,7 +2586,10 @@ class TransitPassAutomation:
 
         # ── 7. Capture PDF ────────────────────────────────────────────────────
         pdf_ok = await capture_pdf_from_print(
-            self.page, self.context, config.TP_SUBMIT_BTN + config.PRINT_TP_BTN, pdf_path, self.log
+            self.page, self.context,
+            config.TP_SUBMIT_BTN + config.PRINT_TP_BTN,
+            pdf_path, self.log,
+            compact=govt_royalty,   # True → Govt. Royalty compact PDF settings
         )
         return pdf_ok
 
@@ -2569,17 +2636,18 @@ class TransitPassAutomation:
 
                 if self.mode == "TP":
                     pdf_ok = await self._process_tp_flow(record, label, pdf_path)
+
+                elif self.mode == "Govt. Royalty":
+                    # Same TP automation steps, but PDF uses compact single-page settings
+                    pdf_ok = await self._process_tp_flow(
+                        record, label, pdf_path, govt_royalty=True
+                    )
+
                 else:
-                    # Step 1 — MDL (pass record so mdl_id from Excel is used)
+                    # MDL flow
                     await self._step1_mdl(record)
-
-                    # Step 2 — Aggregator
                     await self._step2_aggregator(record.get("aggregator", ""))
-
-                    # Step 3 — Consignee
                     await self._step3_consignee(record)
-
-                    # Step 4 — Vehicle/Driver + Print
                     pdf_ok = await self._step4_vehicle_driver(record, label, pdf_path)
 
                 if pdf_ok:
