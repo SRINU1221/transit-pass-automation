@@ -1316,11 +1316,6 @@ async def capture_pdf_from_print(
                             font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
                             font-weight: bold !important;
                         }
-
-                        /* ── Barcode area: keep monospace/native rendering ── */
-                        svg, canvas, img {
-                            font-family: inherit;
-                        }
                     `;
                     document.head.appendChild(fontStyle);
 
@@ -1342,19 +1337,54 @@ async def capture_pdf_from_print(
                                 }
                             }
                             if (passNo) {
+                                // Barcode tuned to match OS print:
+                                //   width=2  → standard bar thickness (scannable)
+                                //   height=60 → ~1.5cm tall, matches OS print barcode height
                                 $Barcode("#Topbarcode,#Bottombarcode").JsBarcode(passNo, {
-                                    width: 1,
-                                    height: 30,
-                                    quite: 10,
-                                    format: "CODE128",
+                                    width:           2,
+                                    height:          60,
+                                    margin:          5,
+                                    format:          "CODE128",
+                                    displayValue:    false,
                                     backgroundColor: "#fff",
-                                    lineColor: "#000"
+                                    lineColor:       "#000"
                                 });
                             }
                         }
                     } catch (e) {
                         console.error("Barcode rendering error:", e);
                     }
+
+                    // ── Barcode size CSS: stop SVGs from being squashed in layout ──────
+                    const barcodeStyle = document.createElement("style");
+                    barcodeStyle.textContent = `
+                        /* Barcode wrapper elements — full width, no shrink */
+                        #Topbarcode, #Bottombarcode,
+                        [id*="barcode"], [id*="Barcode"],
+                        [class*="barcode"], [class*="Barcode"] {
+                            display       : block   !important;
+                            width         : 100%    !important;
+                            max-width     : 100%    !important;
+                            overflow      : visible !important;
+                            margin        : 4px 0   !important;
+                        }
+                        /* SVG inside barcode containers */
+                        #Topbarcode svg, #Bottombarcode svg,
+                        [id*="barcode"] svg, [id*="Barcode"] svg,
+                        [class*="barcode"] svg, [class*="Barcode"] svg {
+                            width      : 100% !important;
+                            height     : auto !important;
+                            min-height : 60px !important;
+                            display    : block !important;
+                        }
+                        /* Catch-all: any SVG that looks like a barcode (has rect children) */
+                        svg:has(rect) {
+                            min-height : 60px !important;
+                            width      : 100% !important;
+                            display    : block !important;
+                        }
+                    `;
+                    document.head.appendChild(barcodeStyle);
                 }
             """)
             break  # Only need to run on the main frame
