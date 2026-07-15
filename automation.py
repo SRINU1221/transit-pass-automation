@@ -1262,6 +1262,68 @@ async def capture_pdf_from_print(
                         "body { background: white !important; }";
                     document.head.appendChild(style);
 
+                    // ── Font-matching CSS: replicate OS-print typography exactly ──────────
+                    // OS Print uses:
+                    //   Headers (h3, title rows)  → Times New Roman Bold
+                    //   Table content (td, th)    → Times New Roman Regular
+                    //   Red notes / warnings      → Times New Roman Bold (colour preserved)
+                    //   Signature labels           → Arial Bold
+                    const fontStyle = document.createElement("style");
+                    fontStyle.textContent = `
+                        /* ── Base: all text defaults to Times New Roman Regular ── */
+                        *, body, div, p, span, li, td, th, label, input {
+                            font-family: 'Times New Roman', Times, serif !important;
+                        }
+
+                        /* ── Headers: ASSISTANT DIRECTOR line, form title, IFMS ── */
+                        h1, h2, h3, h4, h5, h6,
+                        td[align="center"] b,
+                        td[align="center"] strong,
+                        .title, .heading,
+                        [class*="title"], [class*="heading"],
+                        [class*="header"] {
+                            font-family: 'Times New Roman', Times, serif !important;
+                            font-weight: bold !important;
+                        }
+
+                        /* ── Table column headers (SNo, District, Mandal…) ── */
+                        th,
+                        thead td,
+                        tr:has(th) td {
+                            font-family: 'Times New Roman', Times, serif !important;
+                            font-weight: bold !important;
+                        }
+
+                        /* ── Table data cells: Regular weight ── */
+                        tbody td {
+                            font-family: 'Times New Roman', Times, serif !important;
+                            font-weight: normal !important;
+                        }
+
+                        /* ── Red note lines at bottom of each section ── */
+                        font[color="red"], span[style*="color:red"],
+                        span[style*="color: red"], td[style*="color:red"],
+                        td[style*="color: red"], *[style*="color:#ff"],
+                        *[style*="color: #ff"] {
+                            font-family: 'Times New Roman', Times, serif !important;
+                            font-weight: bold !important;
+                        }
+
+                        /* ── Signature section labels (Assistant Director, Lease Holder, Driver) ── */
+                        td b, td strong,
+                        .signature, [class*="signature"],
+                        [class*="sign"] {
+                            font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
+                            font-weight: bold !important;
+                        }
+
+                        /* ── Barcode area: keep monospace/native rendering ── */
+                        svg, canvas, img {
+                            font-family: inherit;
+                        }
+                    `;
+                    document.head.appendChild(fontStyle);
+
                     // Re-render barcodes using the portal's local $Barcode library
                     try {
                         if (typeof $Barcode !== "undefined") {
