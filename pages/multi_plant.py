@@ -69,6 +69,8 @@ def _make_rt():
 if "mp_rt"  not in st.session_state: st.session_state.mp_rt  = {}
 if "mp_cfg" not in st.session_state: st.session_state.mp_cfg = {}
 if "mp_sel" not in st.session_state: st.session_state.mp_sel = None
+# Per-plant TP credential overrides (username/password entered by user for TP mode)
+if "mp_tp_creds" not in st.session_state: st.session_state.mp_tp_creds = {}
 
 # Initialise state for any new plants
 for _p in _db_plants:
@@ -211,10 +213,67 @@ if _pdata is None:
 _col_l, _col_r = st.columns([1, 1], gap="large")
 
 with _col_l:
-    # Credentials info (no actual values shown)
-    st.markdown('<div class="card"><div class="card-t">🔒 Credentials (from Database)</div>',
+    # ── Mode selector (needed early to decide credential display) ──────────────
+    st.markdown('<div class="card"><div class="card-t">⚙️ Run Configuration</div>',
                 unsafe_allow_html=True)
-    st.markdown(f"""
+    _cfg["mode"] = st.selectbox("Mode", ["MDL", "TP", "Govt. Royalty"],
+                                 index=["MDL","TP","Govt. Royalty"].index(_cfg.get("mode","MDL")),
+                                 key=f"mode_{_sel}", disabled=_rt["running"])
+    _cfg["headless"] = st.toggle("🕶️ Headless (hide browser)", value=_cfg.get("headless", False),
+                                  key=f"hl_{_sel}", disabled=_rt["running"])
+    _cfg["delay"] = st.number_input("⏱️ Delay between records (sec)",
+                                     min_value=1.0, max_value=30.0,
+                                     value=float(_cfg.get("delay", 3.0)),
+                                     step=0.5, key=f"delay_{_sel}",
+                                     disabled=_rt["running"])
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # ── Credentials card — behaviour depends on selected mode ─────────────────
+    _is_tp_mode = (_cfg["mode"] == "TP")
+
+    # Initialise TP credential store for this plant if missing
+    if _sel not in st.session_state.mp_tp_creds:
+        st.session_state.mp_tp_creds[_sel] = {"username": "", "password": ""}
+    _tp_creds = st.session_state.mp_tp_creds[_sel]
+
+    if _is_tp_mode:
+        # ── TP mode: user supplies username + password manually ────────────────
+        st.markdown("""
+<div class="card">
+  <div class="card-t">🔐 TP Login Credentials</div>
+  <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.35);
+  border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:.8rem;color:#fbbf24;">
+    ✏️ <b>TP mode</b> — enter your Telangana Mines portal username &amp; password below.
+    These are used only for this run and are never stored.
+  </div>""", unsafe_allow_html=True)
+
+        _tp_creds["username"] = st.text_input(
+            "👤 Username",
+            value=_tp_creds.get("username", ""),
+            key=f"tp_user_{_sel}",
+            disabled=_rt["running"],
+            placeholder="Enter portal username…"
+        )
+        _tp_creds["password"] = st.text_input(
+            "🔑 Password",
+            value=_tp_creds.get("password", ""),
+            key=f"tp_pass_{_sel}",
+            type="password",
+            disabled=_rt["running"],
+            placeholder="Enter portal password…"
+        )
+        # PDF folder is always from DB
+        st.markdown(f"""
+  <div style="background:rgba(15,23,42,.6);border-radius:8px;padding:10px 14px;margin-top:8px;">
+    <span style="color:#64748b;font-size:.82rem;">📁 PDF Folder</span><br>
+    <span style="color:#60a5fa;font-size:.82rem;">{_pdata['pdf_save_folder']}</span>
+  </div>""", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        # ── MDL / Govt. Royalty: credentials come silently from database ───────
+        st.markdown('<div class="card"><div class="card-t">🔒 Credentials (from Database)</div>',
+                    unsafe_allow_html=True)
+        st.markdown(f"""
 <div style="display:grid;gap:8px;">
   <div style="background:rgba(15,23,42,.6);border-radius:8px;padding:10px 14px;
   display:flex;justify-content:space-between;align-items:center;">
@@ -232,24 +291,9 @@ with _col_l:
   </div>
 </div>
 <div style="margin-top:10px;font-size:.75rem;color:#475569;">
-  🔒 To update credentials go to <b>⚙️ Plant Config</b>
+  🔒 Username &amp; password auto-loaded from DB · To update go to <b>⚙️ Plant Config</b>
 </div>""", unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # Run config
-    st.markdown('<div class="card"><div class="card-t">⚙️ Run Configuration</div>',
-                unsafe_allow_html=True)
-    _cfg["mode"] = st.selectbox("Mode", ["MDL", "TP", "Govt. Royalty"],
-                                 index=["MDL","TP","Govt. Royalty"].index(_cfg.get("mode","MDL")),
-                                 key=f"mode_{_sel}", disabled=_rt["running"])
-    _cfg["headless"] = st.toggle("🕶️ Headless (hide browser)", value=_cfg.get("headless", False),
-                                  key=f"hl_{_sel}", disabled=_rt["running"])
-    _cfg["delay"] = st.number_input("⏱️ Delay between records (sec)",
-                                     min_value=1.0, max_value=30.0,
-                                     value=float(_cfg.get("delay", 3.0)),
-                                     step=0.5, key=f"delay_{_sel}",
-                                     disabled=_rt["running"])
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
     # Excel upload
@@ -273,7 +317,15 @@ with _col_l:
     st.markdown('</div>', unsafe_allow_html=True)
 
     # Start / Stop
-    _ready = bool(_cfg.get("records"))
+    # For TP mode — validate that the user has entered credentials
+    _tp_creds_ok = (not _is_tp_mode) or (
+        bool(_tp_creds.get("username", "").strip()) and
+        bool(_tp_creds.get("password", "").strip())
+    )
+    _ready = bool(_cfg.get("records")) and _tp_creds_ok
+    if _is_tp_mode and not _tp_creds_ok and _cfg.get("records"):
+        st.warning("⚠️ Enter your TP portal username and password above before starting.")
+
     _b1, _b2 = st.columns(2)
     with _b1:
         if st.button(f"🚀 Start {_sel}", disabled=_rt["running"] or not _ready,
@@ -284,10 +336,20 @@ with _col_l:
             config.DELAY_BETWEEN_RECORDS = 3.0
 
             _lrt = st.session_state.mp_rt[_sel]
+
+            # TP mode → use manually entered credentials
+            # MDL / Govt. Royalty → use credentials from database
+            if _cfg["mode"] == "TP":
+                _run_username = st.session_state.mp_tp_creds[_sel]["username"].strip()
+                _run_password = st.session_state.mp_tp_creds[_sel]["password"].strip()
+            else:
+                _run_username = _pdata["username"]
+                _run_password = _pdata["password"]
+
             _lps = {
                 "plant_name": _sel,
-                "username":   _pdata["username"],
-                "password":   _pdata["password"],
+                "username":   _run_username,
+                "password":   _run_password,
                 "pdf_folder": _pdata["pdf_save_folder"],
                 "mode":       _cfg["mode"],
                 "headless":   _cfg["headless"],
