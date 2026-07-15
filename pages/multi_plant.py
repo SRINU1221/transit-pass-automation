@@ -262,12 +262,15 @@ with _col_l:
             disabled=_rt["running"],
             placeholder="Enter portal password…"
         )
-        # PDF folder is always from DB
-        st.markdown(f"""
-  <div style="background:rgba(15,23,42,.6);border-radius:8px;padding:10px 14px;margin-top:8px;">
-    <span style="color:#64748b;font-size:.82rem;">📁 PDF Folder</span><br>
-    <span style="color:#60a5fa;font-size:.82rem;">{_pdata['pdf_save_folder']}</span>
-  </div>""", unsafe_allow_html=True)
+        # PDF folder — always editable, pre-filled from DB
+        _cfg["pdf_folder"] = st.text_input(
+            "📁 PDF Save Folder",
+            value=_cfg.get("pdf_folder", _pdata["pdf_save_folder"]),
+            key=f"pdf_folder_{_sel}",
+            disabled=_rt["running"],
+            placeholder="e.g. C:\\Users\\YourName\\Desktop\\PDFs",
+            help="Path where PDFs will be saved. Pre-filled from DB — edit freely."
+        )
         st.markdown('</div>', unsafe_allow_html=True)
     else:
         # ── MDL / Govt. Royalty: credentials come silently from database ───────
@@ -285,14 +288,19 @@ with _col_l:
     <span style="color:#64748b;font-size:.82rem;">🔑 Password</span>
     <span style="color:#e2e8f0;font-size:.85rem;font-weight:600;">{'•' * 8}</span>
   </div>
-  <div style="background:rgba(15,23,42,.6);border-radius:8px;padding:10px 14px;">
-    <span style="color:#64748b;font-size:.82rem;">📁 PDF Folder</span><br>
-    <span style="color:#60a5fa;font-size:.82rem;">{_pdata['pdf_save_folder']}</span>
-  </div>
 </div>
-<div style="margin-top:10px;font-size:.75rem;color:#475569;">
+<div style="margin-top:6px;font-size:.75rem;color:#475569;">
   🔒 Username &amp; password auto-loaded from DB · To update go to <b>⚙️ Plant Config</b>
 </div>""", unsafe_allow_html=True)
+        # PDF folder — always editable, pre-filled from DB
+        _cfg["pdf_folder"] = st.text_input(
+            "📁 PDF Save Folder",
+            value=_cfg.get("pdf_folder", _pdata["pdf_save_folder"]),
+            key=f"pdf_folder_{_sel}",
+            disabled=_rt["running"],
+            placeholder="e.g. C:\\Users\\YourName\\Desktop\\PDFs",
+            help="Path where PDFs will be saved. Pre-filled from DB — edit freely."
+        )
         st.markdown('</div>', unsafe_allow_html=True)
 
 
@@ -350,7 +358,8 @@ with _col_l:
                 "plant_name": _sel,
                 "username":   _run_username,
                 "password":   _run_password,
-                "pdf_folder": _pdata["pdf_save_folder"],
+                # Use user-entered PDF folder (falls back to DB value if untouched)
+                "pdf_folder": _cfg.get("pdf_folder", _pdata["pdf_save_folder"]).strip() or _pdata["pdf_save_folder"],
                 "mode":       _cfg["mode"],
                 "headless":   _cfg["headless"],
                 "delay":      float(_cfg.get("delay", 3.0)),
