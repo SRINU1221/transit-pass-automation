@@ -262,15 +262,6 @@ with _col_l:
             disabled=_rt["running"],
             placeholder="Enter portal password…"
         )
-        # PDF folder — always editable, pre-filled from DB
-        _cfg["pdf_folder"] = st.text_input(
-            "📁 PDF Save Folder",
-            value=_cfg.get("pdf_folder", _pdata["pdf_save_folder"]),
-            key=f"pdf_folder_{_sel}",
-            disabled=_rt["running"],
-            placeholder="e.g. C:\\Users\\YourName\\Desktop\\PDFs",
-            help="Path where PDFs will be saved. Pre-filled from DB — edit freely."
-        )
         st.markdown('</div>', unsafe_allow_html=True)
     else:
         # ── MDL / Govt. Royalty: credentials come silently from database ───────
@@ -292,16 +283,27 @@ with _col_l:
 <div style="margin-top:6px;font-size:.75rem;color:#475569;">
   🔒 Username &amp; password auto-loaded from DB · To update go to <b>⚙️ Plant Config</b>
 </div>""", unsafe_allow_html=True)
-        # PDF folder — always editable, pre-filled from DB
-        _cfg["pdf_folder"] = st.text_input(
-            "📁 PDF Save Folder",
-            value=_cfg.get("pdf_folder", _pdata["pdf_save_folder"]),
-            key=f"pdf_folder_{_sel}",
-            disabled=_rt["running"],
-            placeholder="e.g. C:\\Users\\YourName\\Desktop\\PDFs",
-            help="Path where PDFs will be saved. Pre-filled from DB — edit freely."
-        )
         st.markdown('</div>', unsafe_allow_html=True)
+
+    # ── PDF Save Folder — always visible for ALL modes ─────────────────────────
+    st.markdown('<div class="card"><div class="card-t">📁 PDF Save Folder</div>',
+                unsafe_allow_html=True)
+    _cfg["pdf_folder"] = st.text_input(
+        "📁 PDF Save Folder",
+        value=_cfg.get("pdf_folder", _pdata["pdf_save_folder"]),
+        key=f"pdf_folder_{_sel}",
+        disabled=_rt["running"],
+        placeholder=r"e.g. C:\Users\YourName\Desktop\PDFs",
+        label_visibility="collapsed",
+        help="Path where PDFs will be saved. Pre-filled from database — edit to override."
+    )
+    st.markdown(
+        '<div style="font-size:.75rem;color:#475569;margin-top:4px;">'
+        '✏️ You can change this path before starting. '
+        'Pre-filled from the database — your changes are not saved back to DB.'
+        '</div>',
+        unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
     # Excel upload
