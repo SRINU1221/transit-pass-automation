@@ -1395,6 +1395,89 @@ async def capture_pdf_from_print(
     await popup.wait_for_timeout(1000)
     log_fn("   ✓ Page prepared.")
 
+    # ── Guaranteed font + barcode CSS re-injection via popup.evaluate() ──────────
+    # The frame.evaluate() above only injects styles if PrintContent is found.
+    # For TP / Govt. Royalty, the popup DOM may differ — so we re-apply the same
+    # font rules here at the top-level page context (unconditionally, all modes).
+    try:
+        await popup.evaluate("""
+            () => {
+                // ── Font-matching CSS (Times New Roman) ───────────────────────
+                const fontStyle = document.createElement('style');
+                fontStyle.id = 'auto-royalty-font-override';
+                fontStyle.textContent = `
+                    *, body, div, p, span, li, td, th, label, input {
+                        font-family: 'Times New Roman', Times, serif !important;
+                    }
+                    h1, h2, h3, h4, h5, h6,
+                    td[align="center"] b, td[align="center"] strong,
+                    .title, .heading,
+                    [class*="title"], [class*="heading"], [class*="header"] {
+                        font-family: 'Times New Roman', Times, serif !important;
+                        font-weight: bold !important;
+                    }
+                    th, thead td, tr:has(th) td {
+                        font-family: 'Times New Roman', Times, serif !important;
+                        font-weight: bold !important;
+                    }
+                    tbody td {
+                        font-family: 'Times New Roman', Times, serif !important;
+                        font-weight: normal !important;
+                    }
+                    font[color="red"], span[style*="color:red"],
+                    span[style*="color: red"], td[style*="color:red"],
+                    td[style*="color: red"] {
+                        font-family: 'Times New Roman', Times, serif !important;
+                        font-weight: bold !important;
+                    }
+                    td b, td strong,
+                    .signature, [class*="signature"], [class*="sign"] {
+                        font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
+                        font-weight: bold !important;
+                    }
+                `;
+                // Only append if not already added (avoid duplicates on retry)
+                if (!document.getElementById('auto-royalty-font-override')) {
+                    document.head.appendChild(fontStyle);
+                }
+
+                // ── Barcode size CSS ──────────────────────────────────────────
+                const barcodeStyle = document.createElement('style');
+                barcodeStyle.id = 'auto-royalty-barcode-override';
+                barcodeStyle.textContent = `
+                    #Topbarcode, #Bottombarcode,
+                    [id*="barcode"], [id*="Barcode"],
+                    [class*="barcode"], [class*="Barcode"] {
+                        display    : block   !important;
+                        width      : 100%    !important;
+                        max-width  : 100%    !important;
+                        overflow   : visible !important;
+                        margin     : 4px 0   !important;
+                    }
+                    #Topbarcode svg, #Bottombarcode svg,
+                    [id*="barcode"] svg, [id*="Barcode"] svg,
+                    [class*="barcode"] svg, [class*="Barcode"] svg {
+                        width      : 100% !important;
+                        height     : auto !important;
+                        min-height : 60px !important;
+                        display    : block !important;
+                    }
+                    svg:has(rect) {
+                        min-height : 60px !important;
+                        width      : 100% !important;
+                        display    : block !important;
+                    }
+                `;
+                if (!document.getElementById('auto-royalty-barcode-override')) {
+                    document.head.appendChild(barcodeStyle);
+                }
+            }
+        """)
+        log_fn("   ✓ Font + barcode CSS applied (all modes).")
+    except Exception as css_ex:
+        log_fn(f"   ⚠️ Font/barcode CSS injection failed: {css_ex}")
+
+
     # ── Govt. Royalty: inject compact CSS — kill page-breaks ONLY, preserve spacing ─
     # We do NOT collapse td padding or div/table margins here.
     # The natural Original + Duplicate spacing must be preserved (same as TP/MDL).
