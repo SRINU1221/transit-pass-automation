@@ -1404,6 +1404,7 @@ async def capture_pdf_from_print(
         try:
             await popup.evaluate("""
                 () => {
+                    // ── 1. Page-break suppression ──────────────────────────────────────
                     const style = document.createElement('style');
                     style.textContent = `
                         /* Kill ALL page-break rules — scale handles fitting on 1 page */
@@ -1428,6 +1429,81 @@ async def capture_pdf_from_print(
                            Do NOT add margin or padding overrides here. */
                     `;
                     document.head.appendChild(style);
+
+                    // ── 2. Font-matching CSS (Times New Roman) — same as MDL/TP ──────────
+                    // Re-applied here inside popup.evaluate() to guarantee it runs in the
+                    // correct page context for Govt. Royalty (the frame.evaluate() above
+                    // may target a different execution context on the popup page).
+                    const fontStyle = document.createElement('style');
+                    fontStyle.textContent = `
+                        /* Base: all text defaults to Times New Roman Regular */
+                        *, body, div, p, span, li, td, th, label, input {
+                            font-family: 'Times New Roman', Times, serif !important;
+                        }
+                        /* Headers: ASSISTANT DIRECTOR, ZERO TRANSIT FORM, IFMS */
+                        h1, h2, h3, h4, h5, h6,
+                        td[align="center"] b,
+                        td[align="center"] strong,
+                        .title, .heading,
+                        [class*="title"], [class*="heading"],
+                        [class*="header"] {
+                            font-family: 'Times New Roman', Times, serif !important;
+                            font-weight: bold !important;
+                        }
+                        /* Table column headers */
+                        th, thead td, tr:has(th) td {
+                            font-family: 'Times New Roman', Times, serif !important;
+                            font-weight: bold !important;
+                        }
+                        /* Table data cells: Regular weight */
+                        tbody td {
+                            font-family: 'Times New Roman', Times, serif !important;
+                            font-weight: normal !important;
+                        }
+                        /* Red note lines */
+                        font[color="red"], span[style*="color:red"],
+                        span[style*="color: red"], td[style*="color:red"],
+                        td[style*="color: red"], *[style*="color:#ff"],
+                        *[style*="color: #ff"] {
+                            font-family: 'Times New Roman', Times, serif !important;
+                            font-weight: bold !important;
+                        }
+                        /* Signature labels: Arial Bold */
+                        td b, td strong,
+                        .signature, [class*="signature"], [class*="sign"] {
+                            font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
+                            font-weight: bold !important;
+                        }
+                    `;
+                    document.head.appendChild(fontStyle);
+
+                    // ── 3. Barcode size CSS — prevent SVG squashing ───────────────────
+                    const barcodeStyle = document.createElement('style');
+                    barcodeStyle.textContent = `
+                        #Topbarcode, #Bottombarcode,
+                        [id*="barcode"], [id*="Barcode"],
+                        [class*="barcode"], [class*="Barcode"] {
+                            display    : block   !important;
+                            width      : 100%    !important;
+                            max-width  : 100%    !important;
+                            overflow   : visible !important;
+                            margin     : 4px 0   !important;
+                        }
+                        #Topbarcode svg, #Bottombarcode svg,
+                        [id*="barcode"] svg, [id*="Barcode"] svg,
+                        [class*="barcode"] svg, [class*="Barcode"] svg {
+                            width      : 100% !important;
+                            height     : auto !important;
+                            min-height : 60px !important;
+                            display    : block !important;
+                        }
+                        svg:has(rect) {
+                            min-height : 60px !important;
+                            width      : 100% !important;
+                            display    : block !important;
+                        }
+                    `;
+                    document.head.appendChild(barcodeStyle);
                 }
             """)
             await popup.wait_for_timeout(300)
